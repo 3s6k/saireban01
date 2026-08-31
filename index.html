@@ -3,235 +3,129 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>PATROL SIREN AMP - SAP-500 PRO</title>
+<title>PATROL SIREN AMP SAP-500</title>
 <style>
-  * {
-    box-sizing: border-box;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
   body {
-    background-color: #0f0f0f;
+    background-color: #0a0a0a;
     color: #e0e0e0;
-    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     margin: 0;
   }
-  
-  /* サイレンアンプ（実機風金属パネル） */
   .amp-panel {
-    background: linear-gradient(180deg, #333333 0%, #1a1a1a 100%);
-    border: 4px solid #282828;
-    border-top-color: #444;
+    background: linear-gradient(180deg, #2c2c2c 0%, #141414 100%);
+    border: 4px solid #3d3d3d;
     border-radius: 12px;
-    padding: 30px 25px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 1px 1px rgba(255,255,255,0.2);
-    text-align: center;
+    padding: 25px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.2);
     width: 360px;
-    position: relative;
   }
-
-  .amp-header {
+  .header {
     border-bottom: 2px solid #111;
-    padding-bottom: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 0 #333;
-  }
-
-  .brand-title {
-    font-size: 14px;
-    letter-spacing: 2.5px;
-    color: #bbb;
-    font-weight: 800;
-  }
-
-  .sub-title {
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    color: #666;
-    margin-top: 4px;
-  }
-
-  .indicator-box {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 25px;
-  }
-
-  .status-light {
-    width: 10px;
-    height: 10px;
-    background-color: #1a1a1a;
-    border-radius: 50%;
-    border: 1px solid #000;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
-    transition: all 0.15s ease;
-  }
-
-  .status-light.active {
-    background-color: #ff1a1a;
-    box-shadow: 0 0 12px #ff1a1a, inset 0 1px 2px rgba(255,255,255,0.6);
-  }
-
-  .status-text {
-    font-size: 10px;
-    color: #555;
-    font-weight: bold;
-    letter-spacing: 1px;
-  }
-
-  /* ボタンレイアウト */
-  .button-group {
+    padding-bottom: 10px;
+    margin-bottom: 15px;
     display: flex;
     justify-content: space-between;
-    gap: 12px;
-  }
-
-  .btn-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-  }
-
-  .btn-label {
-    font-size: 10px;
-    font-weight: 700;
-    margin-top: 12px;
-    color: #888;
-    letter-spacing: 0.5px;
-  }
-
-  .btn-sublabel {
-    font-size: 8px;
-    color: #555;
-    margin-top: 2px;
-  }
-
-  /* 押し込み式立体ボタン */
-  .siren-btn {
-    width: 75px;
-    height: 75px;
-    border-radius: 50%;
-    border: 3px solid #111;
-    cursor: pointer;
-    outline: none;
-    font-weight: 800;
-    font-size: 13px;
-    color: #fff;
-    background: radial-gradient(circle at 35% 30%, #e63946, #7a0000);
-    box-shadow: 0 6px 0 #3a0000, 0 10px 15px rgba(0,0,0,0.8);
-    transition: transform 0.05s ease, box-shadow 0.05s ease;
-    -webkit-tap-highlight-color: transparent;
-    display: flex;
-    justify-content: center;
     align-items: center;
   }
-
-  .siren-btn:active, .siren-btn.active {
-    transform: translateY(4px);
-    box-shadow: 0 2px 0 #3a0000, 0 4px 6px rgba(0,0,0,0.8);
-    background: radial-gradient(circle at 35% 30%, #ff4d5a, #9e0000);
+  .title { font-size: 13px; font-weight: bold; letter-spacing: 2px; color: #bbb; }
+  .model { font-size: 10px; color: #666; font-family: monospace; }
+  .display {
+    background: #000;
+    border: 1px solid #222;
+    border-radius: 6px;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
   }
-
-  .manual-btn {
-    background: radial-gradient(circle at 35% 30%, #4a5568, #111827);
-    box-shadow: 0 6px 0 #030712, 0 10px 15px rgba(0,0,0,0.8);
+  .indicator { display: flex; align-items: center; gap: 8px; }
+  .led { width: 10px; height: 10px; background: #222; border-radius: 50%; border: 1px solid #111; }
+  .led.active { background: #ff2222; box-shadow: 0 0 10px #ff2222; }
+  .status-text { font-size: 10px; font-weight: bold; color: #555; letter-spacing: 1px; }
+  .freq { font-family: monospace; font-size: 14px; color: #00ff66; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .btn-box { display: flex; flex-direction: column; align-items: center; }
+  .btn {
+    width: 85px; height: 55px;
+    border-radius: 6px; border: 2px solid #111;
+    background: linear-gradient(180deg, #444 0%, #222 100%);
+    color: #fff; font-weight: bold; font-size: 12px;
+    cursor: pointer; outline: none;
+    box-shadow: 0 4px 0 #000, 0 5px 8px rgba(0,0,0,0.6);
+    transition: all 0.05s ease;
   }
-
-  .manual-btn:active, .manual-btn.active {
-    background: radial-gradient(circle at 35% 30%, #64748b, #1f2937);
-    box-shadow: 0 2px 0 #030712, 0 4px 6px rgba(0,0,0,0.8);
+  .btn:active, .btn.active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #000, 0 2px 4px rgba(0,0,0,0.6);
   }
+  .btn.red { background: linear-gradient(180deg, #d32f2f 0%, #8b0000 100%); }
+  .btn.red:active, .btn.red.active { background: linear-gradient(180deg, #f44336 0%, #ab0000 100%); }
+  .label { font-size: 9px; color: #777; margin-top: 6px; font-weight: bold; }
 </style>
 </head>
 <body>
 
 <div class="amp-panel">
-  <div class="amp-header">
-    <div class="brand-title">PATROL SIREN AMP</div>
-    <div class="sub-title">ELECTRONIC SIREN SYSTEM SAP-500 SPEC</div>
+  <div class="header">
+    <div class="title">PATLITE</div>
+    <div class="model">SAP-500 SPEC</div>
   </div>
-  
-  <div class="indicator-box">
-    <div id="status" class="status-light"></div>
-    <span id="statusText" class="status-text">STANDBY</span>
+
+  <div class="display">
+    <div class="indicator">
+      <div id="led" class="led"></div>
+      <span id="statusText" class="status-text">STANDBY</span>
+    </div>
+    <div id="freq" class="freq">000 Hz</div>
   </div>
-  
-  <div class="button-group">
-    <div class="btn-wrapper">
-      <button id="btn8" class="siren-btn">8s</button>
-      <span class="btn-label">8秒自動</span>
-      <span class="btn-sublabel">（再押下で停止）</span>
+
+  <div class="grid">
+    <div class="btn-box">
+      <button id="btn8" class="btn red">8秒周期</button>
+      <span class="btn-label">自動切替</span>
     </div>
-    <div class="btn-wrapper">
-      <button id="btn4" class="siren-btn">4s</button>
-      <span class="btn-label">4秒自動</span>
-      <span class="btn-sublabel">（再押下で停止）</span>
+    <div class="btn-box">
+      <button id="btn4" class="btn red">4秒周期</button>
+      <span class="btn-label">自動切替</span>
     </div>
-    <div class="btn-wrapper">
-      <button id="btnManual" class="siren-btn manual-btn">手動</button>
-      <span class="btn-label">手動吹鳴</span>
-      <span class="btn-sublabel">（ホールド）</span>
+    <div class="btn-box">
+      <button id="btnManual" class="btn">手 動</button>
+      <span class="btn-label">押下時吹鳴</span>
     </div>
   </div>
 </div>
 
 <script>
-  let audioCtx = null;
-  
-  // オシレーター群（音色の二重合成用）
-  let oscSaw = null;
-  let oscSquare = null;
-  let gainNode = null;
-  let filterNode = null;
+  let audioCtx = null, oscSaw = null, oscSquare = null, gainNode = null, filterNode = null;
+  let mode = null, timer = null, animFrame = null;
 
-  // 再生状態
-  let currentMode = null; // '8s', '4s', 'manual', null
-  let autoTimer = null;
+  const F_LOW = 770, F_HIGH = 960, F_MIN = 250;
 
-  // 実機周波数パラメータ（Hz）
-  const FREQ_LOW = 770;    // 日本の警察サイレンの下限周波数
-  const FREQ_HIGH = 960;   // 日本の警察サイレンの上限周波数
-  const FREQ_MIN = 250;    // 手動停止時の減衰限界音域
-
-  // 音声コンテキストの初期化・アクティベート
-  async function ensureAudioContext() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-      await audioCtx.resume();
-    }
+  async function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
   }
 
-  // 合成音声ユニットの構築
-  function createSirenEngine() {
-    if (oscSaw) destroySirenEngine();
-
+  function startEngine() {
+    if (oscSaw) stopEngine();
     oscSaw = audioCtx.createOscillator();
     oscSquare = audioCtx.createOscillator();
     gainNode = audioCtx.createGain();
     filterNode = audioCtx.createBiquadFilter();
 
-    // 波形設定（SawtoothとSquareのブレンドで倍音豊かなザラザラ感を生成）
     oscSaw.type = 'sawtooth';
     oscSquare.type = 'square';
-
-    // パトカー外部スピーカーの周波数帯域制限（ローパスフィルター）
     filterNode.type = 'lowpass';
     filterNode.frequency.setValueAtTime(1800, audioCtx.currentTime);
 
-    // 初期状態は消音
-    gainNode.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime);
 
-    // 2つの波形をミキシングしてフィルターへ
     oscSaw.connect(filterNode);
     oscSquare.connect(filterNode);
     filterNode.connect(gainNode);
@@ -239,196 +133,158 @@
 
     oscSaw.start();
     oscSquare.start();
+    updateFreq();
   }
 
-  function destroySirenEngine() {
+  function stopEngine() {
     if (oscSaw) {
-      try {
-        oscSaw.stop();
-        oscSquare.stop();
-      } catch(e) {}
-      oscSaw.disconnect();
-      oscSquare.disconnect();
-      filterNode.disconnect();
-      gainNode.disconnect();
-      oscSaw = null;
-      oscSquare = null;
-      filterNode = null;
-      gainNode = null;
+      try { oscSaw.stop(); oscSquare.stop(); } catch(e){}
+      oscSaw.disconnect(); oscSquare.disconnect();
+      filterNode.disconnect(); gainNode.disconnect();
+      oscSaw = null; oscSquare = null; filterNode = null; gainNode = null;
+    }
+    cancelAnimationFrame(animFrame);
+    document.getElementById('freq').textContent = "000 Hz";
+  }
+
+  function updateFreq() {
+    if (oscSaw) {
+      document.getElementById('freq').textContent = Math.round(oscSaw.frequency.value) + " Hz";
+      animFrame = requestAnimationFrame(updateFreq);
     }
   }
 
-  // インジケーター表示変更
-  function setUIState(active, label = "STANDBY") {
-    const status = document.getElementById('status');
+  function setUI(active, text) {
+    const led = document.getElementById('led');
     const statusText = document.getElementById('statusText');
     if (active) {
-      status.classList.add('active');
-      statusText.textContent = label;
+      led.classList.add('active');
+      statusText.textContent = text;
       statusText.style.color = "#ff4d5a";
     } else {
-      status.classList.remove('active');
+      led.classList.remove('active');
       statusText.textContent = "STANDBY";
       statusText.style.color = "#555";
     }
   }
 
-  // --- 手動（モーメンタリー）吹鳴処理 ---
-  async function handleManualPress(e) {
+  // 手動
+  async function pressManual(e) {
     if (e) e.preventDefault();
-    await ensureAudioContext();
+    await initAudio();
+    if (mode === '8s' || mode === '4s') stopAuto();
+    if (mode === 'manual') return;
 
-    if (currentMode === '8s' || currentMode === '4s') {
-      stopAuto();
-    }
-
-    if (currentMode === 'manual') return;
-    currentMode = 'manual';
-
+    mode = 'manual';
     document.getElementById('btnManual').classList.add('active');
-    setUIState(true, "MANUAL SIREN");
+    setUI(true, "MANUAL");
 
-    createSirenEngine();
-
+    startEngine();
     const now = audioCtx.currentTime;
 
-    // 現在の周波数（途中からの再引き伸ばしに対応）
-    const startFreq = FREQ_LOW;
-    oscSaw.frequency.setValueAtTime(startFreq, now);
-    oscSquare.frequency.setValueAtTime(startFreq * 1.002, now); // わずかなデチューン
+    oscSaw.frequency.setValueAtTime(F_LOW, now);
+    oscSquare.frequency.setValueAtTime(F_LOW * 1.002, now);
 
-    // 音量フェードイン
     gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.setValueAtTime(0.001, now);
     gainNode.gain.linearRampToValueAtTime(0.35, now + 0.08);
 
-    // 2.2秒かけて最高音（960Hz）までスイープ上昇
-    oscSaw.frequency.cancelScheduledValues(now);
-    oscSquare.frequency.cancelScheduledValues(now);
-    oscSaw.frequency.linearRampToValueAtTime(FREQ_HIGH, now + 2.2);
-    oscSquare.frequency.linearRampToValueAtTime(FREQ_HIGH * 1.002, now + 2.2);
+    oscSaw.frequency.linearRampToValueAtTime(F_HIGH, now + 2.2);
+    oscSquare.frequency.linearRampToValueAtTime(F_HIGH * 1.002, now + 2.2);
   }
 
-  function handleManualRelease(e) {
+  function releaseManual(e) {
     if (e) e.preventDefault();
-    if (currentMode !== 'manual') return;
+    if (mode !== 'manual') return;
 
     document.getElementById('btnManual').classList.remove('active');
-    setUIState(false);
+    setUI(false);
 
-    if (!oscSaw) {
-      currentMode = null;
-      return;
-    }
+    if (!oscSaw) { mode = null; return; }
 
     const now = audioCtx.currentTime;
-    const currentFreq = oscSaw.frequency.value;
+    const curFreq = oscSaw.frequency.value;
 
-    // 現在の音程から低音（250Hz）まで指数関数的に急降下（余韻の減衰）
     oscSaw.frequency.cancelScheduledValues(now);
     oscSquare.frequency.cancelScheduledValues(now);
-    oscSaw.frequency.setValueAtTime(currentFreq, now);
-    oscSquare.frequency.setValueAtTime(currentFreq * 1.002, now);
+    oscSaw.frequency.setValueAtTime(curFreq, now);
+    oscSquare.frequency.setValueAtTime(curFreq * 1.002, now);
 
-    oscSaw.frequency.exponentialRampToValueAtTime(FREQ_MIN, now + 2.0);
-    oscSquare.frequency.exponentialRampToValueAtTime(FREQ_MIN * 1.002, now + 2.0);
+    oscSaw.frequency.exponentialRampToValueAtTime(F_MIN, now + 2.0);
+    oscSquare.frequency.exponentialRampToValueAtTime(F_MIN * 1.002, now + 2.0);
 
-    // 2.0秒かけて音量を切る
     gainNode.gain.cancelScheduledValues(now);
     gainNode.gain.setValueAtTime(gainNode.gain.value, now);
     gainNode.gain.linearRampToValueAtTime(0.0001, now + 2.0);
 
     setTimeout(() => {
-      if (currentMode === 'manual') {
-        destroySirenEngine();
-        currentMode = null;
-      }
+      if (mode === 'manual') { stopEngine(); mode = null; }
     }, 2000);
   }
 
-  // --- 8秒 / 4秒 自動吹鳴処理 ---
+  // 自動 (8s/4s)
   async function toggleAuto(targetMode) {
-    await ensureAudioContext();
+    await initAudio();
+    if (mode === targetMode) { stopAuto(); return; }
+    if (mode === 'manual') releaseManual();
+    if (mode === '8s' || mode === '4s') stopAuto();
 
-    // 実行中のモードを再押下した場合は停止
-    if (currentMode === targetMode) {
-      stopAuto();
-      return;
-    }
-
-    // 別のモードが動いていれば解除
-    if (currentMode === 'manual') handleManualRelease();
-    if (currentMode === '8s' || currentMode === '4s') stopAuto();
-
-    currentMode = targetMode;
+    mode = targetMode;
     document.getElementById(targetMode === '8s' ? 'btn8' : 'btn4').classList.add('active');
-    setUIState(true, `${targetMode.toUpperCase()} AUTO MODE`);
+    setUI(true, targetMode.toUpperCase());
 
-    createSirenEngine();
+    startEngine();
 
     const period = targetMode === '8s' ? 8.0 : 4.0;
-    const halfPeriod = period / 2;
+    const half = period / 2;
 
     const now = audioCtx.currentTime;
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.setValueAtTime(0.001, now);
     gainNode.gain.linearRampToValueAtTime(0.35, now + 0.1);
 
-    // 三角波的な周期運動（上昇 ➔ 下降 の無限ループ）
-    function scheduleLoop() {
-      if (currentMode !== targetMode) return;
-      
+    function loop() {
+      if (mode !== targetMode) return;
       const t = audioCtx.currentTime;
       oscSaw.frequency.cancelScheduledValues(t);
       oscSquare.frequency.cancelScheduledValues(t);
 
-      // 上昇フェーズ
-      oscSaw.frequency.linearRampToValueAtTime(FREQ_HIGH, t + halfPeriod);
-      oscSquare.frequency.linearRampToValueAtTime(FREQ_HIGH * 1.002, t + halfPeriod);
+      oscSaw.frequency.linearRampToValueAtTime(F_HIGH, t + half);
+      oscSquare.frequency.linearRampToValueAtTime(F_HIGH * 1.002, t + half);
+      oscSaw.frequency.linearRampToValueAtTime(F_LOW, t + period);
+      oscSquare.frequency.linearRampToValueAtTime(F_LOW * 1.002, t + period);
 
-      // 下降フェーズ
-      oscSaw.frequency.linearRampToValueAtTime(FREQ_LOW, t + period);
-      oscSquare.frequency.linearRampToValueAtTime(FREQ_LOW * 1.002, t + period);
-
-      autoTimer = setTimeout(scheduleLoop, period * 1000);
+      timer = setTimeout(loop, period * 1000);
     }
 
-    // 初期音程設定
-    oscSaw.frequency.setValueAtTime(FREQ_LOW, now);
-    oscSquare.frequency.setValueAtTime(FREQ_LOW * 1.002, now);
-
-    scheduleLoop();
+    oscSaw.frequency.setValueAtTime(F_LOW, now);
+    oscSquare.frequency.setValueAtTime(F_LOW * 1.002, now);
+    loop();
   }
 
   function stopAuto() {
-    if (currentMode === '8s' || currentMode === '4s') {
+    if (mode === '8s' || mode === '4s') {
       document.getElementById('btn8').classList.remove('active');
       document.getElementById('btn4').classList.remove('active');
-      setUIState(false);
-      clearTimeout(autoTimer);
+      setUI(false);
+      clearTimeout(timer);
 
       if (gainNode) {
         const now = audioCtx.currentTime;
-        
-        // 緩やかにピッチを落としつつ音量減衰
         oscSaw.frequency.cancelScheduledValues(now);
         oscSquare.frequency.cancelScheduledValues(now);
-        oscSaw.frequency.linearRampToValueAtTime(FREQ_MIN, now + 1.2);
-        oscSquare.frequency.linearRampToValueAtTime(FREQ_MIN * 1.002, now + 1.2);
+        oscSaw.frequency.linearRampToValueAtTime(F_MIN, now + 1.2);
+        oscSquare.frequency.linearRampToValueAtTime(F_MIN * 1.002, now + 1.2);
 
         gainNode.gain.cancelScheduledValues(now);
         gainNode.gain.setValueAtTime(gainNode.gain.value, now);
         gainNode.gain.linearRampToValueAtTime(0.0001, now + 1.2);
 
-        setTimeout(() => {
-          destroySirenEngine();
-        }, 1200);
+        setTimeout(stopEngine, 1200);
       }
-      currentMode = null;
+      mode = null;
     }
   }
 
-  // アタッチイベント設定
   const btn8 = document.getElementById('btn8');
   const btn4 = document.getElementById('btn4');
   const btnManual = document.getElementById('btnManual');
@@ -436,13 +292,11 @@
   btn8.addEventListener('click', () => toggleAuto('8s'));
   btn4.addEventListener('click', () => toggleAuto('4s'));
 
-  // 手動ボタンイベント（PC/スマホマルチ対応）
-  btnManual.addEventListener('mousedown', handleManualPress);
-  btnManual.addEventListener('mouseup', handleManualRelease);
-  btnManual.addEventListener('mouseleave', handleManualRelease);
-
-  btnManual.addEventListener('touchstart', handleManualPress, { passive: false });
-  btnManual.addEventListener('touchend', handleManualRelease, { passive: false });
+  btnManual.addEventListener('mousedown', pressManual);
+  btnManual.addEventListener('mouseup', releaseManual);
+  btnManual.addEventListener('mouseleave', releaseManual);
+  btnManual.addEventListener('touchstart', pressManual, {passive: false});
+  btnManual.addEventListener('touchend', releaseManual, {passive: false});
 </script>
 </body>
 </html>
