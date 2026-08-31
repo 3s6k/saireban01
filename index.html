@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSP SIREN AMP - Calibrated PATLITE Emulator</title>
+<title>DSP SIREN AMP - 200Hz Low-Pitch Calibrated Model</title>
 <style>
     :root {
         --bg-color: #0a0a0c;
@@ -139,7 +139,6 @@
         transform: translateY(2px);
     }
 
-    /* Auto Buttons */
     .btn-auto:hover { border-color: #557799; color: #fff; }
     .btn-auto.active {
         border-color: var(--accent-blue);
@@ -148,7 +147,6 @@
         box-shadow: 0 0 15px var(--accent-blue-glow), inset 0 0 10px rgba(0,0,0,0.5);
     }
 
-    /* Manual Button */
     .btn-manual {
         border-color: #733;
         color: #f88;
@@ -163,7 +161,6 @@
         box-shadow: 0 0 20px var(--accent-red-glow), inset 0 0 10px rgba(0,0,0,0.5);
     }
 
-    /* Alarm Button */
     .btn-alarm.active {
         border-color: var(--accent-yellow);
         color: var(--accent-yellow);
@@ -171,7 +168,6 @@
         box-shadow: 0 0 15px var(--accent-yellow-glow), inset 0 0 10px rgba(0,0,0,0.5);
     }
 
-    /* Stop Button */
     .btn-stop {
         background: #3a1a1a;
         border-color: #622;
@@ -186,8 +182,9 @@
     .instruction {
         margin-top: 20px;
         font-size: 12px;
-        color: #555;
+        color: #666;
         text-align: center;
+        line-height: 1.5;
     }
 </style>
 </head>
@@ -196,7 +193,7 @@
 <div class="amp-case">
     <div class="header">
         <h1>DSP SIREN AMP</h1>
-        <p>PATLITE / SAP Series Frequency Calibrated Model</p>
+        <p>PATLITE / SAP Series Extra-Low Pitch (200Hz Start) Calibrated Model</p>
     </div>
 
     <div class="visualizer-container">
@@ -228,15 +225,14 @@
     </div>
     
     <div class="instruction">
-        * 規格上限（約1350Hz）を厳密保持。高音域をカットオフし実機特有の太く硬い中音域を完全再現。<br>
-        手動ボタン長押し時のオーバーシュート（高い音への飛び出し）を徹底排除しています。
+        ・最低周波数を約200Hzに調整。超低音域からの重厚な立ち上がりを再現。<br>
+        ・ボイス上限2音制限とフィルタ調整により、低音域でも音が潰れずクリアに再生。
     </div>
 </div>
 
 <script>
 /**
- * DSP SIREN AMP EMULATOR (Calibrated Version)
- * 周波数上限を1350Hz付近に精密制御し、高周波成分を抑えた実機ホーンスピーカー音響設計。
+ * DSP SIREN AMP EMULATOR (200Hz Low-Pitch Version)
  */
 
 let audioCtx = null;
@@ -249,14 +245,11 @@ let activeManualVoices = [];
 let currentManualVoice = null;
 let manualKeyActive = false;
 
-// 警察庁規格に厳密に従う周波数(Hz)
-const FREQ_MIN = 770;
-const FREQ_MAX = 1350;
-
-// コンデンサ充放電の漸近ターゲット
-// 上昇時に過剰に突き出ないよう上限ターゲットを1360Hzに調整（2秒到達時点で約1340-1350Hz）
-const FREQ_PEAK_TARGET = 1360; 
-const FREQ_LOW_TARGET = 720;   // 下降時に770Hz付近へ滑らかに着地させるターゲット
+// 最低周波数を約200Hzまで引き下げた周波数設定
+const FREQ_START = 200;      // 手動（ウー）押し始めの超低音（200Hz）
+const FREQ_AUTO_MIN = 600;   // 自動サイレン時の下限
+const FREQ_PEAK_TARGET = 1360; // 上限ターゲット（最高約1350Hz）
+const FREQ_LOW_TARGET = 180;   // 減衰時の漸近ターゲット（200Hz付近に滑らかに着地）
 
 class SirenVoice {
     constructor(ctx, destination) {
@@ -270,8 +263,7 @@ class SirenVoice {
         this.outputGain.connect(destination);
         this.nodes.push(this.outputGain);
 
-        // --- 音色整形フィルター (実機ホーンスピーカーのアンプ帯域再現) ---
-        // 高音域の耳障りなキンキン感をカットするためローパス周波数を2200Hzに制限
+        // 200Hzの重低音を通すようハイパスフィルタのカットオフ周波数を下げて調整
         this.lowpass = ctx.createBiquadFilter();
         this.lowpass.type = 'lowpass';
         this.lowpass.frequency.value = 2200;
@@ -279,37 +271,37 @@ class SirenVoice {
 
         this.highpass = ctx.createBiquadFilter();
         this.highpass.type = 'highpass';
-        this.highpass.frequency.value = 500;
+        this.highpass.frequency.value = 150; // 200Hz以下の不要な超低域ノイズのみカット
 
         this.lowpass.connect(this.highpass).connect(this.outputGain);
         this.nodes.push(this.lowpass, this.highpass);
 
-        // --- オシレーター合成 ---
+        // 波形合成
         this.mixGain = ctx.createGain();
         this.mixGain.gain.value = 0.75;
         this.mixGain.connect(this.lowpass);
         this.nodes.push(this.mixGain);
 
-        // 1. 基音 (鋸波)
+        // 1. 基音 (Sawtooth)
         this.osc1 = ctx.createOscillator();
         this.osc1.type = 'sawtooth';
         this.osc1.connect(this.mixGain);
         this.freqParams.push({ param: this.osc1.frequency, ratio: 1.0 });
 
-        // 2. 芯の太さを追加する矩形波 (微デチューン)
+        // 2. 芯を太くする矩形波
         this.osc2 = ctx.createOscillator();
         this.osc2.type = 'square';
-        this.osc2.detune.value = 8;
+        this.osc2.detune.value = 6;
         const gain2 = ctx.createGain();
         gain2.gain.value = 0.5;
         this.osc2.connect(gain2).connect(this.mixGain);
         this.freqParams.push({ param: this.osc2.frequency, ratio: 1.0 });
 
-        // 3. 重厚感を出す1オクターブ下のサブオシレーター
+        // 3. 低音域の厚みを補強するサブ（三角波）
         this.osc3 = ctx.createOscillator();
         this.osc3.type = 'triangle';
         const gain3 = ctx.createGain();
-        gain3.gain.value = 0.35;
+        gain3.gain.value = 0.4;
         this.osc3.connect(gain3).connect(this.mixGain);
         this.freqParams.push({ param: this.osc3.frequency, ratio: 0.5 });
 
@@ -343,6 +335,13 @@ class SirenVoice {
         }
     }
 
+    fadeAndDestroy(durationSec = 0.2) {
+        const now = this.ctx.currentTime;
+        this.cancelSchedules(now);
+        this.outputGain.gain.setTargetAtTime(0, now, durationSec / 3);
+        setTimeout(() => this.destroy(), durationSec * 1000 + 100);
+    }
+
     destroy() {
         this.nodes.forEach(node => {
             try {
@@ -360,7 +359,7 @@ class AutoSirenManager {
         this.voice = new SirenVoice(ctx, destination);
         
         const now = ctx.currentTime;
-        this.voice.setFrequencyAtTime(FREQ_MIN, now);
+        this.voice.setFrequencyAtTime(FREQ_AUTO_MIN, now);
         this.voice.outputGain.gain.setValueAtTime(0, now);
         this.voice.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
 
@@ -379,12 +378,11 @@ class AutoSirenManager {
         while (this.nextScheduleTime < now + lookAhead) {
             const t = this.nextScheduleTime;
             const halfCycle = this.cycleLength / 2.0;
-            
             const ratio = halfCycle / 2.0;
-            const tauUp = 0.65 * ratio;   // 上昇カーブの応答性調整（最高音約1350Hzで頭打ち）
-            const tauDown = 0.70 * ratio; // 下降カーブの応答性調整
+            const tauUp = 0.65 * ratio;
+            const tauDown = 0.70 * ratio;
 
-            this.voice.setFrequencyAtTime(FREQ_MIN, t);
+            this.voice.setFrequencyAtTime(FREQ_AUTO_MIN, t);
             this.voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, t, tauUp);
             this.voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, t + halfCycle, tauDown);
             
@@ -397,11 +395,7 @@ class AutoSirenManager {
     stop() {
         this.isRunning = false;
         clearTimeout(this.scheduleId);
-        
-        const now = this.ctx.currentTime;
-        this.voice.cancelSchedules(now);
-        this.voice.outputGain.gain.setTargetAtTime(0, now, 0.05);
-        setTimeout(() => this.voice.destroy(), 500);
+        this.voice.fadeAndDestroy(0.2);
     }
 }
 
@@ -434,7 +428,6 @@ class IntersectionAlarmVoice {
         this.dc = dc;
         this.nodes.push(lfo, dc);
         
-        // 警報音周波数も実機に合わせ調整
         const freqs = [1200, 1550]; 
         this.oscs = [];
         freqs.forEach(f => {
@@ -536,15 +529,22 @@ function startManual() {
     manualKeyActive = true;
     btnManual.classList.add('active');
 
+    // 最大同時発音数を 2 音に制限
+    while (activeManualVoices.length >= 2) {
+        const oldestVoice = activeManualVoices.shift();
+        oldestVoice.fadeAndDestroy(0.2);
+    }
+
     const voice = new SirenVoice(audioCtx, masterCompressor);
     const now = audioCtx.currentTime;
     
-    voice.setFrequencyAtTime(FREQ_MIN, now);
+    // 超低音（200Hz）からスタート
+    voice.setFrequencyAtTime(FREQ_START, now);
     voice.outputGain.gain.setValueAtTime(0, now);
     voice.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
     
-    // 時定数 0.65 で約2秒かけて1350Hzへ滑らかに到達（オーバーシュートなし）
-    voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, now, 0.65);
+    // 200Hzから最高点（1360Hzターゲット）へ充電カーブで急上昇（時定数 0.75）
+    voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, now, 0.75);
 
     activeManualVoices.push(voice);
     currentManualVoice = voice;
@@ -560,15 +560,15 @@ function releaseManual() {
         
         voice.cancelSchedules(now);
         
-        // 惰性下降 (時定数 0.70)
-        voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, now, 0.70);
-        voice.outputGain.gain.setTargetAtTime(0, now, 1.0); 
+        // 惰性下降 (超低音に向かって減衰)
+        voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, now, 0.80);
+        voice.outputGain.gain.setTargetAtTime(0, now, 0.9); 
         
         setTimeout(() => {
             voice.destroy();
             const idx = activeManualVoices.indexOf(voice);
             if (idx > -1) activeManualVoices.splice(idx, 1);
-        }, 4000);
+        }, 3500);
         
         currentManualVoice = null;
     }
@@ -600,12 +600,7 @@ function stopAll() {
         btnAlarm.classList.remove('active');
     }
     
-    const now = audioCtx ? audioCtx.currentTime : 0;
-    activeManualVoices.forEach(voice => {
-        voice.cancelSchedules(now);
-        voice.outputGain.gain.setTargetAtTime(0, now, 0.05);
-        setTimeout(() => voice.destroy(), 500);
-    });
+    activeManualVoices.forEach(voice => voice.fadeAndDestroy(0.1));
     activeManualVoices = [];
     currentManualVoice = null;
     manualKeyActive = false;
@@ -686,7 +681,7 @@ function drawVisualizer() {
     const autoCnt = autoManager ? 1 : 0;
     const manCnt = activeManualVoices.length;
     const almCnt = alarmVoice ? 1 : 0;
-    statusText.textContent = `SYS_STATUS: [AUTO:${autoCnt}] [MANUAL_VOICE:${manCnt}] [ALARM:${almCnt}]`;
+    statusText.textContent = `SYS_STATUS: [AUTO:${autoCnt}] [MANUAL_VOICES:${manCnt}/2] [ALARM:${almCnt}]`;
 }
 
 ctxCanvas.fillStyle = '#000';
