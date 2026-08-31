@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PATLITE SAP-Series Siren Amp Emulator (Precision DSP Model)</title>
+    <title>PATLITE SAP-Series Siren Amp Emulator (Precision Peak-Hold Model)</title>
     <style>
         :root {
             --panel-bg: #141519;
@@ -238,7 +238,7 @@
         <div class="header">
             <div class="header-title">
                 <h1>ELECTRONIC SIREN AMPLIFIER</h1>
-                <p>PATLITE SAP-Series Precision Time-Domain Calibrated Model</p>
+                <p>PATLITE SAP-Series Precision Peak-Hold Model</p>
             </div>
             <div class="status-badge">
                 <div id="status-dot" class="status-dot"></div>
@@ -260,11 +260,11 @@
                 <h2>自動周期 (AUTO)</h2>
                 <button id="btn-auto-4" class="btn btn-auto">
                     4秒周期 (巡回)
-                    <small>上昇2.0s / 下降2.0s (770↔1350Hz)</small>
+                    <small>最高音4s保持 / 降下2s / 上昇2s</small>
                 </button>
                 <button id="btn-auto-8" class="btn btn-auto">
                     8秒周期 (高速)
-                    <small>上昇4.0s / 下降4.0s (770↔1350Hz)</small>
+                    <small>最高音8s保持 / 降下4s / 上昇4s</small>
                 </button>
             </div>
 
@@ -295,18 +295,14 @@
     </div>
 
     <div class="footer-note">
-        ※4秒/8秒完全直線スイープ、手動約1.3秒全開上昇、離音時約3.5秒指数慣性降下パラメータ調整済みモデル。
+        ※最高音(1350Hz)到達後に4秒/8秒保持し、その後指定秒数で下降・再上昇する最高音ホールド仕様。
     </div>
 </div>
 
 <script>
-/**
- * 規格厳密準拠・DSPサイレンエミュレータ回路
- */
-
 // 規格定数
-const FREQ_MIN = 770.0;   // 定常最低周波数 (Hz)
-const FREQ_MAX = 1350.0;  // 定常最高周波数 (Hz)
+const FREQ_MIN = 770.0;   // 最低周波数 (Hz)
+const FREQ_MAX = 1350.0;  // 最高周波数 (Hz)
 const FREQ_OFF = 0.01;    // 消音時ベース周波数 (Hz)
 
 let audioCtx = null;
@@ -319,9 +315,7 @@ let intersectionAlarmNode = null;
 
 let isAudioInitialized = false;
 
-/**
- * 車載ホーンスピーカー（ドライバーユニット）伝達関数
- */
+// スピーカーアンプフィルター
 function createSpeakerEmulationFilter(ctx) {
     const input = ctx.createGain();
     const output = ctx.createGain();
@@ -381,7 +375,7 @@ function initAudioEngine() {
 }
 
 /**
- * 高精度サイレンオシレータ（正確なミリ秒時間制御エンジン）
+ * 主波形オシレータ（最高音ホールド＋変調エンジン）
  */
 class MainSirenEngine {
     constructor(ctx, destination) {
@@ -392,7 +386,6 @@ class MainSirenEngine {
         this.outputGain.gain.value = 0;
         this.outputGain.connect(destination);
 
-        // 主音源（三角波）＋高調波補強（のこぎり波）
         this.oscMain = ctx.createOscillator();
         this.oscMain.type = 'triangle';
 
@@ -447,45 +440,56 @@ class MainSirenEngine {
         }
     }
 
-    // --- モード制御ロジック ---
-
+    // --- 自動周期 (最高音キープ 4秒 / 8秒 モード) ---
     startAutoCycle(cycleSec) {
         this.cancelSchedules();
         this.mode = (cycleSec === 4) ? 'AUTO 4S' : 'AUTO 8S';
 
         const now = this.ctx.currentTime;
         const currentF = this.getCurrentFrequency();
-        const halfCycle = cycleSec / 2.0; // 2.0秒 または 4.0秒
+        const sweepDuration = cycleSec / 2.0; // 4sモード: 変調2.0s / 8sモード: 変調4.0s
+        const holdDuration = cycleSec;        // 最高音(1350Hz)を維持する時間 (4秒 または 8秒)
 
-        // 音量即時100%化
+        // 音量ON
         this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
-        this.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
+        this.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.03);
 
-        // 起点周波数の決定と初回半サイクルの上昇時間の正確な計算
+        // 最初の一回り：現在のピッチから最高音(1350Hz)へ上昇
         let startF = (currentF < FREQ_MIN + 5) ? FREQ_MIN : currentF;
         if (startF > FREQ_MAX) startF = FREQ_MAX;
 
-        const firstRiseDuration = ((FREQ_MAX - startF) / (FREQ_MAX - FREQ_MIN)) * halfCycle;
+        const initialRiseDuration = ((FREQ_MAX - startF) / (FREQ_MAX - FREQ_MIN)) * sweepDuration;
 
         this.setFreqInstant(startF, now);
-        this.linearRampFreq(FREQ_MAX, now + firstRiseDuration);
+        this.linearRampFreq(FREQ_MAX, now + initialRiseDuration);
 
-        this.nextScheduleTime = now + firstRiseDuration;
+        // 最高音(1350Hz)に達した瞬間からループを開始
+        let tPeak = now + initialRiseDuration;
+        this.nextScheduleTime = tPeak;
 
         const scheduleLoop = () => {
             if (this.mode !== 'AUTO 4S' && this.mode !== 'AUTO 8S') return;
 
             const t = this.ctx.currentTime;
+
             while (this.nextScheduleTime < t + 2.0) {
-                const startTime = this.nextScheduleTime;
-                // 下降フェーズ (正しく 2.0秒/4.0秒 で 1350 -> 770Hz 直線降下)
-                this.setFreqInstant(FREQ_MAX, startTime);
-                this.linearRampFreq(FREQ_MIN, startTime + halfCycle);
+                const tStart = this.nextScheduleTime;
 
-                // 上昇フェーズ (正しく 2.0秒/4.0秒 で 770 -> 1350Hz 直線上昇)
-                this.linearRampFreq(FREQ_MAX, startTime + cycleSec);
+                // 1. 最高音(1350Hz)を holdDuration (4秒/8秒) 間キープ
+                this.setFreqInstant(FREQ_MAX, tStart);
+                const tStartDrop = tStart + holdDuration;
+                this.setFreqInstant(FREQ_MAX, tStartDrop);
 
-                this.nextScheduleTime += cycleSec;
+                // 2. そこから 1350Hz -> 770Hz へ (2秒/4秒) かけて直線下降
+                const tBottom = tStartDrop + sweepDuration;
+                this.linearRampFreq(FREQ_MIN, tBottom);
+
+                // 3. 770Hz -> 1350Hz へ (2秒/4秒) かけて直線上昇
+                const tNextPeak = tBottom + sweepDuration;
+                this.linearRampFreq(FREQ_MAX, tNextPeak);
+
+                // 次の最高音開始ポイントへ進行
+                this.nextScheduleTime = tNextPeak;
             }
             this.timerId = setTimeout(scheduleLoop, 200);
         };
@@ -501,13 +505,11 @@ class MainSirenEngine {
         let currentF = this.getCurrentFrequency();
         if (currentF < FREQ_MIN) currentF = FREQ_MIN;
 
-        // 音量ON
         this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
         this.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.03);
 
-        // 手動立ち上がり規格: 約1.3秒で全開(1350Hz)に到達する1次遅れ応答
         this.setFreqInstant(currentF, now);
-        this.setTargetFreq(FREQ_MAX, now, 0.35); // 0.35 * ~3.7 ≒ 1.3s
+        this.setTargetFreq(FREQ_MAX, now, 0.35); // 1.3秒で1350Hzへ到達
     }
 
     stopWithInertia() {
@@ -520,11 +522,8 @@ class MainSirenEngine {
         const currentF = this.getCurrentFrequency();
 
         this.setFreqInstant(currentF, now);
+        this.setTargetFreq(FREQ_MIN, now, 0.85); // 3.5秒かけて慣性降下
 
-        // 手動余韻（慣性降下）規格: 離してから約3.5秒かけて770Hzまで指数関数的に降下
-        this.setTargetFreq(FREQ_MIN, now, 0.85); // timeConstant 0.85 ≒ 約3.5秒で収束
-
-        // 周波数低下に正確に同調して音量も減衰
         this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
         this.outputGain.gain.setTargetAtTime(0.0, now, 0.9);
 
@@ -544,7 +543,7 @@ class MainSirenEngine {
 }
 
 /**
- * 交差点警報音エンジン (1200Hz + 1550Hz / 11.5Hz変調)
+ * 交差点警報音 (1200Hz + 1550Hz)
  */
 class IntersectionAlarmEngine {
     constructor(ctx, destination) {
@@ -613,7 +612,7 @@ class IntersectionAlarmEngine {
     }
 }
 
-// UIイベント制御
+// UIバインド
 const btnAuto4 = document.getElementById('btn-auto-4');
 const btnAuto8 = document.getElementById('btn-auto-8');
 const btnManual = document.getElementById('btn-manual');
