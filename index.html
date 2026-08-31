@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Siren Controller</title>
+<title>PATROL SIREN AMP SAP-500</title>
 <style>
   body {
-    background-color: #1a1a1a;
+    background-color: #121212;
     color: #ccc;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,199 +16,313 @@
     margin: 0;
   }
   
-  /* サイレンアンプ本体のパネル */
   .amp-panel {
-    background: linear-gradient(145deg, #2b2b2b, #1e1e1e);
-    border: 4px solid #444;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    background: linear-gradient(180deg, #2a2a2a, #181818);
+    border: 3px solid #333;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 30px rgba(0,0,0,0.9);
     text-align: center;
-    width: 320px;
+    width: 340px;
+    position: relative;
   }
 
   .brand-title {
-    font-size: 14px;
-    letter-spacing: 2px;
-    color: #888;
-    margin-bottom: 20px;
-    text-transform: uppercase;
-    border-bottom: 1px solid #444;
-    padding-bottom: 5px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #999;
+    margin-bottom: 15px;
+    font-weight: bold;
+    border-bottom: 2px solid #333;
+    padding-bottom: 8px;
   }
 
-  /* ボタンコンテナ */
+  .status-light {
+    width: 14px;
+    height: 14px;
+    background-color: #222;
+    border-radius: 50%;
+    margin: 0 auto 20px auto;
+    border: 1px solid #444;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    transition: background-color 0.2s;
+  }
+
+  .status-light.active {
+    background-color: #ff2222;
+    box-shadow: 0 0 12px #ff2222;
+  }
+
   .button-group {
     display: flex;
-    justify-content: space-around;
-    margin-top: 20px;
+    justify-content: space-between;
+    gap: 10px;
   }
 
   .btn-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
+    flex: 1;
   }
 
   .btn-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
     margin-top: 10px;
-    color: #aaa;
+    color: #888;
   }
 
-  /* サイレンアンプ特有の赤・朱色ボタン */
   .siren-btn {
-    width: 80px;
-    height: 80px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
-    border: none;
+    border: 2px solid #111;
     cursor: pointer;
     outline: none;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
     color: #fff;
-    background: radial-gradient(circle at 30% 30%, #ff5555, #990000);
-    box-shadow: 0 6px 0 #550000, 0 10px 15px rgba(0,0,0,0.5);
-    transition: all 0.1s ease;
+    background: radial-gradient(circle at 35% 35%, #e63946, #800000);
+    box-shadow: 0 5px 0 #400000, 0 8px 10px rgba(0,0,0,0.6);
+    transition: all 0.05s ease;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* ボタン押下時の演出（押し込まれた状態） */
   .siren-btn:active, .siren-btn.active {
     transform: translateY(4px);
-    box-shadow: 0 2px 0 #550000, 0 4px 6px rgba(0,0,0,0.5);
-    background: radial-gradient(circle at 30% 30%, #ff7777, #bb0000);
+    box-shadow: 0 1px 0 #400000, 0 3px 5px rgba(0,0,0,0.6);
+    background: radial-gradient(circle at 35% 35%, #ff4d5a, #a00000);
   }
 
-  .status-light {
-    width: 12px;
-    height: 12px;
-    background-color: #333;
-    border-radius: 50%;
-    margin: 0 auto 15px auto;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+  .manual-btn {
+    background: radial-gradient(circle at 35% 35%, #4a5568, #1a202c);
+    box-shadow: 0 5px 0 #0f172a, 0 8px 10px rgba(0,0,0,0.6);
   }
 
-  .status-light.active {
-    background-color: #ff0000;
-    box-shadow: 0 0 10px #ff0000;
+  .manual-btn:active, .manual-btn.active {
+    background: radial-gradient(circle at 35% 35%, #718096, #2d3748);
+    box-shadow: 0 1px 0 #0f172a, 0 3px 5px rgba(0,0,0,0.6);
   }
 </style>
 </head>
 <body>
 
 <div class="amp-panel">
-  <div class="brand-title">PATROL SIREN AMP</div>
+  <div class="brand-title">ELECTRONIC SIREN AMP</div>
   <div id="status" class="status-light"></div>
   
   <div class="button-group">
     <div class="btn-wrapper">
       <button id="btn8" class="siren-btn">8s</button>
-      <span class="btn-label">手動 8秒周期</span>
+      <span class="btn-label">8秒自動</span>
     </div>
     <div class="btn-wrapper">
       <button id="btn4" class="siren-btn">4s</button>
-      <span class="btn-label">手動 4秒周期</span>
+      <span class="btn-label">4秒自動</span>
+    </div>
+    <div class="btn-wrapper">
+      <button id="btnManual" class="siren-btn manual-btn">手動</button>
+      <span class="btn-label">手動(押下)</span>
     </div>
   </div>
 </div>
 
 <script>
   let audioCtx = null;
-  let oscillator = null;
+  let osc1 = null;
+  let osc2 = null;
   let gainNode = null;
-  let currentTimer = null;
+  let mode = null; // '8s', '4s', 'manual', null
+  let autoLfoTimer = null;
 
-  // AudioContextの初期化
-  function initAudio() {
+  const LOW_FREQ = 650;
+  const HIGH_FREQ = 920;
+
+  async function initAudio() {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-  }
-
-  // サイレン発振の開始
-  function startSiren() {
-    initAudio();
-    if (oscillator) stopSirenAudio();
-
-    oscillator = audioCtx.createOscillator();
-    gainNode = audioCtx.createGain();
-
-    // パトカー特有の金属的な音色に近い鋸歯状波を使用
-    oscillator.type = 'sawtooth';
-    
-    // 基本周波数の初期値（低音）
-    oscillator.frequency.setValueAtTime(450, audioCtx.currentTime);
-    
-    // アンプ音量の立ち上がり
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    
-    oscillator.start();
-  }
-
-  // 指定時間をかけて音を立ち上げる（ボタン押下処理）
-  function playSiren(durationSeconds, btnElement) {
-    startSiren();
-    document.getElementById('status').classList.add('active');
-    btnElement.classList.add('active');
-
-    // 押し込んでいる時間にかけて高音（約750Hz）までピッチを引上げる
-    oscillator.frequency.linearRampToValueAtTime(770, audioCtx.currentTime + Math.min(2.5, durationSeconds));
-
-    // 指定時間経過後にボタンを離した（減衰）動作へ移行
-    currentTimer = setTimeout(() => {
-      releaseSiren(btnElement);
-    }, durationSeconds * 1000);
-  }
-
-  // ボタンを離した際の減衰処理（余韻を残して落ちる）
-  function releaseSiren(btnElement) {
-    if (!oscillator) return;
-
-    const now = audioCtx.currentTime;
-    
-    // ピッチを急速に落とす
-    oscillator.frequency.cancelScheduledValues(now);
-    oscillator.frequency.setValueAtTime(oscillator.frequency.value, now);
-    oscillator.frequency.exponentialRampToValueAtTime(300, now + 1.8);
-
-    // 音量を絞る
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-    gainNode.gain.linearRampToValueAtTime(0.001, now + 1.8);
-
-    setTimeout(() => {
-      stopSirenAudio();
-      document.getElementById('status').classList.remove('active');
-      if (btnElement) btnElement.classList.remove('active');
-    }, 1800);
-  }
-
-  function stopSirenAudio() {
-    if (oscillator) {
-      try { oscillator.stop(); } catch(e) {}
-      oscillator.disconnect();
-      oscillator = null;
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
     }
   }
 
-  // イベント設定
-  const btn8 = document.getElementById('btn8');
-  const btn4 = document.getElementById('btn4');
+  function setupSound() {
+    osc1 = audioCtx.createOscillator();
+    osc2 = audioCtx.createOscillator();
+    gainNode = audioCtx.createGain();
 
-  function triggerPattern(seconds, btn) {
-    if (currentTimer) clearTimeout(currentTimer);
-    playSiren(seconds, btn);
+    // 日本のサイレンアンプに近い波形（鋸歯状波＋三角波の合成）
+    osc1.type = 'sawtooth';
+    osc2.type = 'triangle';
+
+    osc1.frequency.setValueAtTime(LOW_FREQ, audioCtx.currentTime);
+    osc2.frequency.setValueAtTime(LOW_FREQ * 1.005, audioCtx.currentTime); // わずかなズレでサイレン特有の唸りを再現
+
+    gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime);
+
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    osc1.start();
+    osc2.start();
   }
 
-  btn8.addEventListener('click', () => triggerPattern(8, btn8));
-  btn4.addEventListener('click', () => triggerPattern(4, btn4));
+  function setStatus(active) {
+    const status = document.getElementById('status');
+    if (active) status.classList.add('active');
+    else status.classList.remove('active');
+  }
+
+  // --- 手動モード制御 ---
+  function startManual() {
+    initAudio();
+    stopAuto();
+    if (mode === 'manual') return;
+
+    mode = 'manual';
+    document.getElementById('btnManual').classList.add('active');
+    setStatus(true);
+
+    if (!osc1) setupSound();
+
+    const now = audioCtx.currentTime;
+    // 音量フェードイン
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    gainNode.gain.linearRampToValueAtTime(0.4, now + 0.1);
+
+    // ピッチ上昇（手動押し込み）
+    osc1.frequency.cancelScheduledValues(now);
+    osc2.frequency.cancelScheduledValues(now);
+    osc1.frequency.linearRampToValueAtTime(HIGH_FREQ, now + 2.0);
+    osc2.frequency.linearRampToValueAtTime(HIGH_FREQ * 1.005, now + 2.0);
+  }
+
+  function stopManual() {
+    if (mode !== 'manual') return;
+
+    document.getElementById('btnManual').classList.remove('active');
+    setStatus(false);
+
+    const now = audioCtx.currentTime;
+    // ピッチ下降（手動離し余韻）
+    osc1.frequency.cancelScheduledValues(now);
+    osc2.frequency.cancelScheduledValues(now);
+    osc1.frequency.setValueAtTime(osc1.frequency.value, now);
+    osc2.frequency.setValueAtTime(osc2.frequency.value, now);
+
+    osc1.frequency.exponentialRampToValueAtTime(350, now + 2.2);
+    osc2.frequency.exponentialRampToValueAtTime(350 * 1.005, now + 2.2);
+
+    // 音量減衰
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    gainNode.gain.linearRampToValueAtTime(0.001, now + 2.2);
+
+    setTimeout(() => {
+      if (mode === 'manual') {
+        killSound();
+        mode = null;
+      }
+    }, 2200);
+  }
+
+  // --- 自動モード（8s / 4s）制御 ---
+  function toggleAuto(targetMode) {
+    initAudio();
+    
+    // 同じモードを再押下した場合は停止
+    if (mode === targetMode) {
+      stopAuto();
+      return;
+    }
+
+    // 別の処理が動いていれば停止
+    stopAuto();
+    if (mode === 'manual') stopManual();
+
+    mode = targetMode;
+    document.getElementById(targetMode === '8s' ? 'btn8' : 'btn4').classList.add('active');
+    setStatus(true);
+
+    if (!osc1) setupSound();
+
+    const period = targetMode === '8s' ? 8.0 : 4.0;
+    const halfPeriod = period / 2;
+
+    const now = audioCtx.currentTime;
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(0.4, now);
+
+    function runCycle() {
+      if (mode !== targetMode) return;
+      const t = audioCtx.currentTime;
+
+      // 周期の前半で上昇、後半で下降
+      osc1.frequency.cancelScheduledValues(t);
+      osc2.frequency.cancelScheduledValues(t);
+
+      osc1.frequency.linearRampToValueAtTime(HIGH_FREQ, t + halfPeriod);
+      osc2.frequency.linearRampToValueAtTime(HIGH_FREQ * 1.005, t + halfPeriod);
+
+      osc1.frequency.linearRampToValueAtTime(LOW_FREQ, t + period);
+      osc2.frequency.linearRampToValueAtTime(LOW_FREQ * 1.005, t + period);
+
+      autoLfoTimer = setTimeout(runCycle, period * 1000);
+    }
+
+    runCycle();
+  }
+
+  function stopAuto() {
+    if (mode === '8s' || mode === '4s') {
+      document.getElementById('btn8').classList.remove('active');
+      document.getElementById('btn4').classList.remove('active');
+      setStatus(false);
+      clearTimeout(autoLfoTimer);
+
+      if (gainNode) {
+        const now = audioCtx.currentTime;
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+        gainNode.gain.linearRampToValueAtTime(0.001, now + 1.0);
+        setTimeout(killSound, 1000);
+      }
+      mode = null;
+    }
+  }
+
+  function killSound() {
+    if (osc1) {
+      try { osc1.stop(); osc2.stop(); } catch(e) {}
+      osc1.disconnect();
+      osc2.disconnect();
+      gainNode.disconnect();
+      osc1 = null;
+      osc2 = null;
+      gainNode = null;
+    }
+  }
+
+  // イベントリスナー
+  const btn8 = document.getElementById('btn8');
+  const btn4 = document.getElementById('btn4');
+  const btnManual = document.getElementById('btnManual');
+
+  btn8.addEventListener('click', () => toggleAuto('8s'));
+  btn4.addEventListener('click', () => toggleAuto('4s'));
+
+  // 手動ボタン（マウス・タッチ両対応）
+  btnManual.addEventListener('mousedown', startManual);
+  btnManual.addEventListener('mouseup', stopManual);
+  btnManual.addEventListener('mouseleave', stopManual);
+
+  btnManual.addEventListener('touchstart', (e) => { e.preventDefault(); startManual(); });
+  btnManual.addEventListener('touchend', (e) => { e.preventDefault(); stopManual(); });
 </script>
 </body>
 </html>
