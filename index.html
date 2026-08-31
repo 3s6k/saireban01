@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PATLITE Electronic Siren Amplifier Simulator</title>
+<title>PATLITE 電子サイレンアンプ シミュレーター</title>
 <style>
   :root {
     --panel-bg: #2b2d30;
     --panel-border: #1a1b1d;
-    --bezel-color: #d1d5db;
     --btn-red: #cc0000;
     --btn-red-active: #ff3333;
     --btn-black: #111111;
@@ -16,23 +15,31 @@
     --led-red-on: #ff0000;
   }
 
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
   body {
     background-color: #0f1012;
     color: #e5e7eb;
-    font-family: 'Arial', 'Helvetica', sans-serif;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    margin: 0;
+    padding: 20px;
     user-select: none;
+    -webkit-user-select: none;
   }
 
   .amplifier-unit {
     background: var(--panel-bg);
     border: 4px solid var(--panel-border);
     border-radius: 12px;
-    width: 680px;
+    width: 100%;
+    max-width: 680px;
     padding: 24px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.1);
     position: relative;
@@ -57,7 +64,7 @@
   .model-name {
     font-size: 14px;
     color: #9ca3af;
-    font-family: monospace;
+    font-family: 'Courier New', Courier, monospace;
   }
 
   .control-panel {
@@ -71,6 +78,13 @@
     border: 1px solid #374151;
   }
 
+  @media (max-width: 640px) {
+    .control-panel {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+  }
+
   .section-title {
     font-size: 11px;
     text-transform: uppercase;
@@ -78,9 +92,10 @@
     margin-bottom: 10px;
     text-align: center;
     letter-spacing: 1px;
+    font-weight: bold;
   }
 
-  /* モード切り替えスイッチ */
+  /* モード切り替えボタン */
   .rotary-group {
     display: flex;
     flex-direction: column;
@@ -98,7 +113,7 @@
     background: linear-gradient(180deg, #374151 0%, #1f2937 100%);
     color: #ffffff;
     border: 1px solid #4b5563;
-    padding: 12px;
+    padding: 12px 16px;
     font-weight: bold;
     font-size: 13px;
     border-radius: 6px;
@@ -121,6 +136,19 @@
     box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
   }
 
+  .indicator-led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--led-red-off);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.5);
+  }
+
+  .btn.active .indicator-led {
+    background-color: #60a5fa;
+    box-shadow: 0 0 8px #60a5fa;
+  }
+
   /* 手動サイレンボタン (赤色特大) */
   .manual-group {
     display: flex;
@@ -135,14 +163,15 @@
     width: 100px;
     height: 100px;
     border-radius: 50%;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
     box-shadow: 0 6px 0 #7f1d1d, 0 10px 15px rgba(0,0,0,0.5);
     cursor: pointer;
     outline: none;
+    transition: all 0.05s ease;
   }
 
-  .btn-danger:active {
+  .btn-danger:active, .btn-danger.pressing {
     transform: translateY(4px);
     box-shadow: 0 2px 0 #7f1d1d, 0 5px 10px rgba(0,0,0,0.5);
     background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
@@ -158,23 +187,32 @@
   .btn-stop {
     background: linear-gradient(180deg, #4b5563 0%, #1f2937 100%);
     border-color: #6b7280;
-    color: #ef4444;
+    color: #f87171;
+  }
+
+  .btn-stop.active {
+    background: linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%);
+    color: #ffffff;
+    border-color: #ef4444;
   }
 
   .volume-box {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
   }
 
   .volume-box label {
     font-size: 11px;
     color: #9ca3af;
+    display: flex;
+    justify-content: space-between;
   }
 
   input[type=range] {
     width: 100%;
     accent-color: #3b82f6;
+    cursor: pointer;
   }
 
   /* モニター・インジケーター */
@@ -183,17 +221,324 @@
     background: #000000;
     border: 2px solid #374151;
     border-radius: 6px;
-    padding: 12px;
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
   .status-text {
-    font-family: monospace;
+    font-family: 'Courier New', Courier, monospace;
     color: #10b981;
     font-size: 14px;
+    font-weight: bold;
   }
 
   .frequency-display {
-    font
+    font-family: 'Courier New', Courier, monospace;
+    color: #ef4444;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="amplifier-unit">
+  <div class="brand-header">
+    <div class="brand-title">PATLITE</div>
+    <div class="model-name">SAP-500 SIMULATOR</div>
+  </div>
+
+  <div class="control-panel">
+    <!-- 自動吹鳴モード -->
+    <div class="rotary-group">
+      <div class="section-title">サイレンモード</div>
+      <div class="rotary-buttons">
+        <button class="btn" id="btn-pato" onclick="setMode('pato')">
+          <span>パトカー (ウー)</span>
+          <span class="indicator-led"></span>
+        </button>
+        <button class="btn" id="btn-kyukyu" onclick="setMode('kyukyu')">
+          <span>救急車 (ピーポー)</span>
+          <span class="indicator-led"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 手動サイレン -->
+    <div class="manual-group">
+      <div class="section-title">手動/足踏</div>
+      <button class="btn-danger" id="btn-manual">
+        手動<br>PUSH
+      </button>
+    </div>
+
+    <!-- 停止 & 音量 -->
+    <div class="system-group">
+      <button class="btn btn-stop" id="btn-stop" onclick="stopSiren()">
+        サイレン 停止
+      </button>
+      <div class="volume-box">
+        <label for="volume">音量調整 <span id="vol-value">50%</span></label>
+        <input type="range" id="volume" min="0" max="100" value="50" oninput="updateVolume(this.value)">
+      </div>
+    </div>
+  </div>
+
+  <!-- ディスプレイエリア -->
+  <div class="display-panel">
+    <div class="status-text" id="status-text">STATUS: STANDBY</div>
+    <div class="frequency-display" id="freq-display">--- Hz</div>
+  </div>
+</div>
+
+<script>
+  let audioCtx = null;
+  let mainGain = null;
+  let currentOsc = null;
+  let timerId = null;
+  let currentMode = 'off';
+  let isManualPressing = false;
+
+  // Web Audio APIの初期化（ユーザー操作後に呼び出し）
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      mainGain = audioCtx.createGain();
+      mainGain.gain.value = 0.5; // 初期音量 50%
+      mainGain.connect(audioCtx.destination);
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  // UI更新関数
+  function updateUI(modeName, statusText) {
+    document.querySelectorAll('.rotary-buttons .btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('btn-stop').classList.remove('active');
+
+    if (modeName === 'pato') document.getElementById('btn-pato').classList.add('active');
+    if (modeName === 'kyukyu') document.getElementById('btn-kyukyu').classList.add('active');
+    if (modeName === 'off') document.getElementById('btn-stop').classList.add('active');
+
+    document.getElementById('status-text').innerText = `STATUS: ${statusText}`;
+  }
+
+  // 周波数表示アニメーション用
+  function updateFreqDisplay(freq) {
+    const display = document.getElementById('freq-display');
+    if (freq === 0) {
+      display.innerText = '--- Hz';
+    } else {
+      display.innerText = `${Math.round(freq)} Hz`;
+    }
+  }
+
+  // すべての音をクリア
+  function clearAudioScheduler() {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+    if (currentOsc) {
+      try {
+        currentOsc.stop();
+        currentOsc.disconnect();
+      } catch (e) {}
+      currentOsc = null;
+    }
+    updateFreqDisplay(0);
+  }
+
+  // モード設定
+  function setMode(mode) {
+    initAudio();
+    if (currentMode === mode) return;
+
+    clearAudioScheduler();
+    currentMode = mode;
+
+    if (mode === 'pato') {
+      updateUI('pato', 'PATROL SIREN');
+      startPatrolSiren();
+    } else if (mode === 'kyukyu') {
+      updateUI('kyukyu', 'AMBULANCE SIREN');
+      startAmbulanceSiren();
+    }
+  }
+
+  // 停止
+  function stopSiren() {
+    initAudio();
+    clearAudioScheduler();
+    currentMode = 'off';
+    updateUI('off', 'STANDBY');
+  }
+
+  // --- 音源生成機能 ---
+
+  // 1. パトカーサイレン（周期的なウー音: 770Hz〜960Hz）
+  function startPatrolSiren() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sawtooth'; // 矩形波・ノコギリ波で金属的なサイレン音を表現
+    osc.connect(gain);
+    gain.connect(mainGain);
+
+    const now = audioCtx.currentTime;
+    const cycleDuration = 4.0; // 4秒周期で上下
+
+    // 周波数のグラデーション（スイープ）の設定
+    osc.frequency.setValueAtTime(770, now);
+
+    // スケジューリングループ
+    function schedulePatrol() {
+      if (currentMode !== 'pato') return;
+      const t = audioCtx.currentTime;
+      osc.frequency.linearRampToValueAtTime(960, t + cycleDuration / 2);
+      osc.frequency.linearRampToValueAtTime(770, t + cycleDuration);
+    }
+
+    schedulePatrol();
+    timerId = setInterval(schedulePatrol, cycleDuration * 1000);
+
+    // 画面に現在の周波数をリアルタイム描画
+    const freqMonitor = setInterval(() => {
+      if (currentMode !== 'pato') {
+        clearInterval(freqMonitor);
+        return;
+      }
+      if (osc.frequency) {
+        updateFreqDisplay(osc.frequency.value);
+      }
+    }, 100);
+
+    osc.start();
+    currentOsc = osc;
+  }
+
+  // 2. 救急車サイレン（ピーポー: 770Hz / 635Hz 交互）
+  function startAmbulanceSiren() {
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine'; // 救急車は比較的きれいなサイン波に近い
+    osc.connect(mainGain);
+
+    let isHigh = true;
+
+    function togglePiPo() {
+      if (currentMode !== 'kyukyu') return;
+      const freq = isHigh ? 770 : 635;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      updateFreqDisplay(freq);
+      isHigh = !isHigh;
+    }
+
+    togglePiPo();
+    timerId = setInterval(togglePiPo, 650); // 約0.65秒ごとに切替
+
+    osc.start();
+    currentOsc = osc;
+  }
+
+  // 3. 手動サイレン (押している間上昇、離すと下降)
+  const manualBtn = document.getElementById('btn-manual');
+
+  function startManualSiren() {
+    initAudio();
+    if (currentMode === 'pato' || currentMode === 'kyukyu') {
+      clearAudioScheduler();
+      currentMode = 'manual';
+      updateUI('none', 'MANUAL OVERRIDE');
+    }
+
+    if (currentOsc) return;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+    
+    // 立ち上がり（押下時）
+    osc.frequency.exponentialRampToValueAtTime(960, audioCtx.currentTime + 2.5);
+
+    osc.connect(gain);
+    gain.connect(mainGain);
+    osc.start();
+
+    currentOsc = osc;
+
+    const freqMonitor = setInterval(() => {
+      if (!currentOsc) {
+        clearInterval(freqMonitor);
+        return;
+      }
+      updateFreqDisplay(osc.frequency.value);
+    }, 50);
+  }
+
+  function stopManualSiren() {
+    if (!currentOsc || currentMode !== 'manual') return;
+
+    const osc = currentOsc;
+    const now = audioCtx.currentTime;
+
+    // 立ち下がり（離した時）
+    osc.frequency.cancelScheduledValues(now);
+    osc.frequency.setValueAtTime(osc.frequency.value, now);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 3.0);
+
+    setTimeout(() => {
+      if (currentMode === 'manual') {
+        clearAudioScheduler();
+        currentMode = 'off';
+        updateUI('off', 'STANDBY');
+      }
+    }, 3000);
+  }
+
+  // 手動ボタンのイベントリスナー (PC / スマホ両対応)
+  manualBtn.addEventListener('mousedown', () => {
+    isManualPressing = true;
+    manualBtn.classList.add('pressing');
+    startManualSiren();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isManualPressing) {
+      isManualPressing = false;
+      manualBtn.classList.remove('pressing');
+      stopManualSiren();
+    }
+  });
+
+  manualBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    isManualPressing = true;
+    manualBtn.classList.add('pressing');
+    startManualSiren();
+  });
+
+  manualBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (isManualPressing) {
+      isManualPressing = false;
+      manualBtn.classList.remove('pressing');
+      stopManualSiren();
+    }
+  });
+
+  // 音量変更
+  function updateVolume(val) {
+    document.getElementById('vol-value').innerText = `${val}%`;
+    if (mainGain) {
+      mainGain.gain.value = val / 100;
+    }
+  }
+</script>
+</body>
+</html>
