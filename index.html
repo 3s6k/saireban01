@@ -1,282 +1,597 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PATROL SIREN AMP SAP-500 PERFECT</title>
-<style>
-  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-  body {
-    background-color: #0d0f12;
-    color: #e0e0e0;
-    font-family: monospace, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-  }
-  .panel {
-    background: #181b22;
-    border: 3px solid #2d323e;
-    border-radius: 12px;
-    padding: 24px;
-    width: 350px;
-    box-shadow: 0 12px 36px rgba(0,0,0,0.9);
-  }
-  .display {
-    background: #08090b;
-    border: 1px solid #222630;
-    border-radius: 6px;
-    padding: 12px 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  .status { font-size: 11px; font-weight: bold; color: #444; letter-spacing: 1px; }
-  .status.active { color: #ff3344; text-shadow: 0 0 10px rgba(255, 51, 68, 0.6); }
-  .freq { font-size: 15px; color: #00ff88; font-weight: bold; }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .btn {
-    height: 54px;
-    background: #252934;
-    border: 1px solid #3d4354;
-    border-radius: 6px;
-    color: #fff;
-    font-weight: bold;
-    font-size: 12px;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #12141a;
-  }
-  .btn:active, .btn.active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #12141a;
-  }
-  .btn.red { background: #851414; border-color: #b91c1c; }
-  .btn.red.active { background: #dc2626; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本警察仕様 パトカーサイレンアンプ・シミュレーター</title>
+    <style>
+        :root {
+            --bg-color: #1a1c1e;
+            --panel-color: #2a2d32;
+            --accent-red: #d32f2f;
+            --accent-red-active: #f44336;
+            --accent-blue: #0288d1;
+            --accent-gray: #455a64;
+            --text-color: #eceff1;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none;
+        }
+
+        .container {
+            background-color: var(--panel-color);
+            border: 3px solid #37474f;
+            border-radius: 12px;
+            padding: 24px;
+            width: 420px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #37474f;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            margin: 0;
+            letter-spacing: 2px;
+            color: #cfd8dc;
+        }
+
+        .header p {
+            font-size: 0.75rem;
+            color: #90a4ae;
+            margin: 4px 0 0 0;
+        }
+
+        .display {
+            background-color: #050b14;
+            border: 2px solid #1c313a;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .display-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .display-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .label {
+            font-size: 0.8rem;
+            color: #78909c;
+        }
+
+        .value {
+            font-size: 1.1rem;
+            color: #00e676;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0,230,118,0.5);
+        }
+
+        .meter-container {
+            width: 100%;
+            height: 10px;
+            background-color: #102027;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .meter-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #26a69a, #ffca28, #ef5350);
+            transition: width 0.05s linear;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            background-color: var(--accent-gray);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 16px 8px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px #263238;
+            transition: all 0.05s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .btn:active, .btn.active {
+            box-shadow: 0 1px #263238;
+            transform: translateY(3px);
+        }
+
+        .btn-sub {
+            font-size: 0.65rem;
+            font-weight: normal;
+            opacity: 0.8;
+        }
+
+        .btn-red { background-color: var(--accent-red); }
+        .btn-red:active, .btn-red.active { background-color: var(--accent-red-active); }
+        
+        .btn-blue { background-color: var(--accent-blue); }
+        .btn-stop { background-color: #37474f; grid-column: span 2; }
+
+        .btn-active-indicator {
+            border: 2px solid #00e676 !important;
+        }
+
+        .footer-note {
+            margin-top: 16px;
+            font-size: 0.7rem;
+            color: #607d8b;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-<div class="panel">
-  <div class="display">
-    <span id="status" class="status">STANDBY</span>
-    <span id="freq" class="freq">000 Hz</span>
-  </div>
-  <div class="grid">
-    <button id="btn8" class="btn red">8秒周期</button>
-    <button id="btn4" class="btn red">4秒周期</button>
-    <button id="btnManual" class="btn">手動</button>
-  </div>
+<div class="container">
+    <div class="header">
+        <h1>SIREN AMPLIFIER</h1>
+        <p>JAPAN POLICE SPECIFICATION DSP SIMULATOR</p>
+    </div>
+
+    <div class="display">
+        <div class="display-row">
+            <span class="label">MODE:</span>
+            <span class="value" id="disp-mode">STANDBY</span>
+        </div>
+        <div class="display-row">
+            <span class="label">FREQUENCY:</span>
+            <span class="value" id="disp-freq">--- Hz</span>
+        </div>
+        <div class="meter-container">
+            <div class="meter-bar" id="meter-bar"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-red" id="btn-manual">
+            手動 (ウー)
+            <span class="btn-sub">[SPACE キー / 長押し・即時割り込み]</span>
+        </button>
+
+        <button class="btn btn-blue" id="btn-auto-4s">
+            自動 4秒周期
+            <span class="btn-sub">[キー 1 / 近距離・交差点]</span>
+        </button>
+
+        <button class="btn btn-blue" id="btn-auto-8s">
+            自動 8秒周期
+            <span class="btn-sub">[キー 2 / 通常巡航]</span>
+        </button>
+
+        <button class="btn" id="btn-intersection">
+            交差点警報
+            <span class="btn-sub">[キー 3 / ハーモニック重畳]</span>
+        </button>
+
+        <button class="btn btn-stop" id="btn-stop">
+            停止 (STOP)
+            <span class="btn-sub">[ESC キー]</span>
+        </button>
+    </div>
+
+    <div class="footer-note">
+        ※外部スピーカー等の物理音響機器への接続に対応した信号出力設計
+    </div>
 </div>
 
 <script>
-  let ctx = null;
-  let oscMain = null;   // 主音（300Hz〜750Hz Sawtooth）
-  let oscHarmonic = null; // 高域倍音（オクターブ上）
-  let gain = null;
-  let filter = null;
-  let mode = null, loopTimer = null, animReq = null;
+/**
+ * 日本警察仕様 サイレンアンプ DSP Engine
+ * Web Audio API Synth Logic
+ */
+class PoliceSirenDSP {
+    constructor() {
+        this.ctx = null;
+        this.masterGain = null;
+        
+        // 音響諸元規格（日本警察仕様）
+        this.FREQ_MIN = 770;  // 下限周波数 (Hz)
+        this.FREQ_MAX = 1350; // 上限周波数 (Hz)
+        
+        // 状態管理
+        this.currentMode = 'STOP'; // STOP, AUTO_4S, AUTO_8S, MANUAL, INTERSECTION
+        this.manualOsc = null;
+        this.manualGain = null;
+        this.autoOsc = null;
+        this.autoGain = null;
+        
+        this.manualParams = {
+            attackTime: 1.8,  // 770Hz -> 1350Hz への上昇時間
+            releaseTime: 2.2  // 1350Hz -> 770Hz への慣性降下時間
+        };
 
-  // 物理計算数値の設定
-  const F_START = 300; // 始まり・最低音
-  const F_MAX   = 750; // 最高音の主音
-  const F_MIN   = 150; // 手動減衰の終点周波数
-
-  function initAudio() {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (ctx.state === 'suspended') ctx.resume();
-  }
-
-  function startOsc() {
-    stopOsc();
-    oscMain = ctx.createOscillator();
-    oscHarmonic = ctx.createOscillator();
-    gain = ctx.createGain();
-    filter = ctx.createBiquadFilter();
-
-    // 波形設定
-    oscMain.type = 'sawtooth';     // ズッシリ重い主音
-    oscHarmonic.type = 'triangle'; // 高域に薄く混ざる高音成分
-
-    // スピーカー通過後のバンドパス・ローパス特性（角を削りアンプ感を出す）
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(2200, ctx.currentTime);
-
-    // 初期音量
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-
-    // ノード接続
-    const harmGain = ctx.createGain();
-    harmGain.gain.value = 0.25; // 倍音の混ざり具合（主音に対して25%）
-
-    oscMain.connect(filter);
-    oscHarmonic.connect(harmGain);
-    harmGain.connect(filter);
-
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-
-    oscMain.start();
-    oscHarmonic.start();
-    updateFreqDisplay();
-  }
-
-  function stopOsc() {
-    if (oscMain) {
-      try { oscMain.stop(); oscHarmonic.stop(); } catch(e){}
-      oscMain.disconnect(); oscHarmonic.disconnect(); filter.disconnect(); gain.disconnect();
-      oscMain = null; oscHarmonic = null; filter = null; gain = null;
-    }
-    cancelAnimationFrame(animReq);
-    document.getElementById('freq').textContent = "000 Hz";
-  }
-
-  function updateFreqDisplay() {
-    if (oscMain) {
-      document.getElementById('freq').textContent = Math.round(oscMain.frequency.value) + " Hz";
-      animReq = requestAnimationFrame(updateFreqDisplay);
-    }
-  }
-
-  function setStatus(text, active) {
-    const el = document.getElementById('status');
-    el.textContent = text;
-    el.className = 'status' + (active ? ' active' : '');
-  }
-
-  // 周波数を設定する関数（主音とオクターブ上の高音を連動）
-  function setSirenFreq(freq, targetTime, rampType = 'linear') {
-    const t = targetTime;
-    if (rampType === 'exponential') {
-      const safeFreq = Math.max(freq, 10);
-      oscMain.frequency.exponentialRampToValueAtTime(safeFreq, t);
-      oscHarmonic.frequency.exponentialRampToValueAtTime(safeFreq * 2.02, t);
-    } else {
-      oscMain.frequency.linearRampToValueAtTime(freq, t);
-      oscHarmonic.frequency.linearRampToValueAtTime(freq * 2.02, t);
-    }
-  }
-
-  // 自動（8秒 / 4秒周期）
-  function toggleAuto(targetMode) {
-    initAudio();
-    if (mode === targetMode) { stopAll(); return; }
-    stopAll();
-
-    mode = targetMode;
-    document.getElementById(targetMode === '8s' ? 'btn8' : 'btn4').classList.add('active');
-    setStatus(targetMode.toUpperCase(), true);
-
-    startOsc();
-    const period = targetMode === '8s' ? 8.0 : 4.0;
-    const half = period / 2;
-    const now = ctx.currentTime;
-
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.35, now + 0.1);
-
-    function loop() {
-      if (mode !== targetMode) return;
-      const t = ctx.currentTime;
-      oscMain.frequency.cancelScheduledValues(t);
-      oscHarmonic.frequency.cancelScheduledValues(t);
-
-      // 300Hz -> 750Hz -> 300Hz の連続周期
-      setSirenFreq(F_MAX, t + half);
-      setSirenFreq(F_START, t + period);
-
-      loopTimer = setTimeout(loop, period * 1000);
+        this.animFrameId = null;
+        this.onUpdateCallback = null;
     }
 
-    oscMain.frequency.setValueAtTime(F_START, now);
-    oscHarmonic.frequency.setValueAtTime(F_START * 2.02, now);
-    loop();
-  }
-
-  // 手動：押下時（300Hzから750Hzへ上昇）
-  function pressManual(e) {
-    if (e) e.preventDefault();
-    initAudio();
-    if (mode === 'manual') return;
-    stopAll();
-
-    mode = 'manual';
-    document.getElementById('btnManual').classList.add('active');
-    setStatus("MANUAL", true);
-
-    startOsc();
-    const now = ctx.currentTime;
-
-    oscMain.frequency.setValueAtTime(F_START, now);
-    oscHarmonic.frequency.setValueAtTime(F_START * 2.02, now);
-
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.35, now + 0.08);
-
-    // 押している間に300Hzから750Hzへ約2.5秒かけて吹け上がる
-    setSirenFreq(F_MAX, now + 2.5);
-  }
-
-  // 手動：離した時（離した高さから150Hz付近へ下降して消音）
-  function releaseManual(e) {
-    if (e) e.preventDefault();
-    if (mode !== 'manual') return;
-
-    document.getElementById('btnManual').classList.remove('active');
-    setStatus("STANDBY", false);
-
-    if (!oscMain) { mode = null; return; }
-
-    const now = ctx.currentTime;
-    const currentF = oscMain.frequency.value;
-
-    oscMain.frequency.cancelScheduledValues(now);
-    oscHarmonic.frequency.cancelScheduledValues(now);
-
-    oscMain.frequency.setValueAtTime(currentF, now);
-    oscHarmonic.frequency.setValueAtTime(currentF * 2.02, now);
-
-    // 離した瞬間の周波数から150Hz付近まで指数関数的に余韻を残して落ちる
-    setSirenFreq(F_MIN, now + 2.6, 'exponential');
-
-    gain.gain.cancelScheduledValues(now);
-    gain.gain.setValueAtTime(gain.gain.value, now);
-    gain.gain.linearRampToValueAtTime(0.0001, now + 2.6);
-
-    setTimeout(() => {
-      if (mode === 'manual') { stopOsc(); mode = null; }
-    }, 2600);
-  }
-
-  function stopAll() {
-    clearTimeout(loopTimer);
-    document.getElementById('btn8').classList.remove('active');
-    document.getElementById('btn4').classList.remove('active');
-    document.getElementById('btnManual').classList.remove('active');
-    setStatus("STANDBY", false);
-
-    if (gain && mode !== 'manual') {
-      const now = ctx.currentTime;
-      gain.gain.cancelScheduledValues(now);
-      gain.gain.linearRampToValueAtTime(0.0001, now + 0.4);
-      setTimeout(stopOsc, 400);
-    } else {
-      stopOsc();
+    init() {
+        if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+            this.masterGain.connect(this.ctx.destination);
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
     }
-    mode = null;
-  }
 
-  document.getElementById('btn8').addEventListener('click', () => toggleAuto('8s'));
-  document.getElementById('btn4').addEventListener('click', () => toggleAuto('4s'));
+    /**
+     * サイレン特有の倍音を含む波形・フィルタ群を生成
+     * 実機のホーンスピーカー駆動波形（鋸波/三角波＋ローパスフィルタ）をシミュレート
+     */
+    createSirenToneNode(type = 'sawtooth', cutFreq = 2400) {
+        const osc = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
+        
+        // 波形設定 (鋸波によりホーンスピーカー特有の倍音を再現)
+        osc.type = type;
+        
+        // 高音域の不要なエッジを削り、実物スピーカーの周波数特性に近似させる
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(cutFreq, this.ctx.currentTime);
+        filter.Q.setValueAtTime(1.5, this.ctx.currentTime);
 
-  const mBtn = document.getElementById('btnManual');
-  mBtn.addEventListener('mousedown', pressManual);
-  mBtn.addEventListener('mouseup', releaseManual);
-  mBtn.addEventListener('mouseleave', releaseManual);
-  mBtn.addEventListener('touchstart', pressManual, {passive: false});
-  mBtn.addEventListener('touchend', releaseManual, {passive: false});
+        osc.connect(filter);
+        return { osc, output: filter };
+    }
+
+    /**
+     * 手動（ウー）ボタン押し込み動作（最優先即時割り込み処理）
+     */
+    triggerManualStart() {
+        this.init();
+        this.stopAutoSiren();
+        
+        const now = this.ctx.currentTime;
+
+        // 【割り込み処理の核】
+        // 過去の発音・減衰アニメーションが残っている場合、即座にノードとスケジュールを全破棄
+        if (this.manualOsc) {
+            try {
+                this.manualOsc.frequency.cancelScheduledValues(now);
+                this.manualGain.gain.cancelScheduledValues(now);
+                this.manualOsc.stop(now);
+                this.manualOsc.disconnect();
+            } catch (e) {}
+        }
+
+        // 音源ノード群の再構築
+        const tone = this.createSirenToneNode('sawtooth', 2200);
+        this.manualOsc = tone.osc;
+        this.manualGain = this.ctx.createGain();
+
+        tone.output.connect(this.manualGain);
+        this.manualGain.connect(this.masterGain);
+
+        // 即座に最安周波数(770Hz)からスタート
+        this.manualOsc.frequency.setValueAtTime(this.FREQ_MIN, now);
+        
+        // 1.8秒かけて上限周波数(1350Hz)へスイープ上昇
+        this.manualOsc.frequency.exponentialRampToValueAtTime(this.FREQ_MAX, now + this.manualParams.attackTime);
+
+        // 音量のアタック処理
+        this.manualGain.gain.setValueAtTime(0.01, now);
+        this.manualGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
+
+        this.manualOsc.start(now);
+        this.currentMode = 'MANUAL';
+        this.startMonitoring();
+    }
+
+    /**
+     * 手動（ウー）ボタン離し動作（慣性降下処理）
+     */
+    triggerManualRelease() {
+        if (this.currentMode !== 'MANUAL' || !this.manualOsc) return;
+
+        const now = this.ctx.currentTime;
+        
+        // 現在のリアルタイム周波数を取得
+        const currentFreq = this.manualOsc.frequency.getValueAtTime(now);
+
+        // 進行中のスケジューリングを即時キャンセル
+        this.manualOsc.frequency.cancelScheduledValues(now);
+        this.manualGain.gain.cancelScheduledValues(now);
+
+        // 現在値から固定し、最安周波数(770Hz)に向かって慣性降下
+        this.manualOsc.frequency.setValueAtTime(currentFreq, now);
+
+        // 降下時間を現在周波数の割合に応じて動的計算
+        const ratio = (currentFreq - this.FREQ_MIN) / (this.FREQ_MAX - this.FREQ_MIN);
+        const fallDuration = Math.max(0.1, this.manualParams.releaseTime * ratio);
+
+        this.manualOsc.frequency.exponentialRampToValueAtTime(this.FREQ_MIN, now + fallDuration);
+        
+        // 音量も同時に自然にフェードアウト
+        this.manualGain.gain.setValueAtTime(this.manualGain.gain.getValueAtTime(now), now);
+        this.manualGain.gain.linearRampToValueAtTime(0.001, now + fallDuration);
+
+        // 完全停止処理
+        this.manualOsc.stop(now + fallDuration + 0.05);
+        
+        setTimeout(() => {
+            if (this.currentMode === 'MANUAL') {
+                this.currentMode = 'STOP';
+            }
+        }, fallDuration * 1000);
+    }
+
+    /**
+     * 自動サイレン再生（4秒/8秒周期）
+     */
+    startAutoSiren(periodSeconds) {
+        this.init();
+        this.stopAll();
+
+        const now = this.ctx.currentTime;
+        const tone = this.createSirenToneNode('sawtooth', 2400);
+        this.autoOsc = tone.osc;
+        this.autoGain = this.ctx.createGain();
+
+        tone.output.connect(this.autoGain);
+        this.autoGain.connect(this.masterGain);
+
+        this.autoGain.gain.setValueAtTime(0.01, now);
+        this.autoGain.gain.linearRampToValueAtTime(1.0, now + 0.1);
+
+        const halfPeriod = periodSeconds / 2;
+        
+        // LFO/スイープの連続スケジューリング（100周期分あらかじめ生成）
+        let timeCursor = now;
+        this.autoOsc.frequency.setValueAtTime(this.FREQ_MIN, timeCursor);
+
+        for (let i = 0; i < 100; i++) {
+            // 上昇
+            timeCursor += halfPeriod;
+            this.autoOsc.frequency.exponentialRampToValueAtTime(this.FREQ_MAX, timeCursor);
+            // 下降
+            timeCursor += halfPeriod;
+            this.autoOsc.frequency.exponentialRampToValueAtTime(this.FREQ_MIN, timeCursor);
+        }
+
+        this.autoOsc.start(now);
+        this.currentMode = (periodSeconds === 4) ? 'AUTO_4S' : 'AUTO_8S';
+        this.startMonitoring();
+    }
+
+    /**
+     * 交差点警報音（ハーモニック重畳/高速切り替え）
+     */
+    triggerIntersection() {
+        this.init();
+        this.stopAll();
+
+        const now = this.ctx.currentTime;
+        
+        // パトカー交差点通過時の交差音（ウー＋交差点警報）
+        const tone = this.createSirenToneNode('triangle', 3000);
+        this.autoOsc = tone.osc;
+        this.autoGain = this.ctx.createGain();
+
+        tone.output.connect(this.autoGain);
+        this.autoGain.connect(this.masterGain);
+
+        this.autoGain.gain.setValueAtTime(1.0, now);
+
+        // 超高速スイープ(約0.35秒周期)で危険を周知
+        let timeCursor = now;
+        this.autoOsc.frequency.setValueAtTime(770, timeCursor);
+        for (let i = 0; i < 50; i++) {
+            timeCursor += 0.18;
+            this.autoOsc.frequency.exponentialRampToValueAtTime(1350, timeCursor);
+            timeCursor += 0.18;
+            this.autoOsc.frequency.exponentialRampToValueAtTime(770, timeCursor);
+        }
+
+        this.autoOsc.start(now);
+        this.currentMode = 'INTERSECTION';
+        this.startMonitoring();
+    }
+
+    /**
+     * 全音源の完全停止
+     */
+    stopAll() {
+        const now = this.ctx ? this.ctx.currentTime : 0;
+        
+        if (this.manualOsc) {
+            try {
+                this.manualOsc.frequency.cancelScheduledValues(now);
+                this.manualGain.gain.cancelScheduledValues(now);
+                this.manualOsc.stop(now);
+                this.manualOsc.disconnect();
+            } catch(e) {}
+            this.manualOsc = null;
+        }
+
+        if (this.autoOsc) {
+            try {
+                this.autoOsc.frequency.cancelScheduledValues(now);
+                this.autoGain.gain.cancelScheduledValues(now);
+                this.autoOsc.stop(now);
+                this.autoOsc.disconnect();
+            } catch(e) {}
+            this.autoOsc = null;
+        }
+
+        this.currentMode = 'STOP';
+    }
+
+    stopAutoSiren() {
+        if (this.autoOsc) {
+            try {
+                const now = this.ctx.currentTime;
+                this.autoGain.gain.linearRampToValueAtTime(0.001, now + 0.1);
+                this.autoOsc.stop(now + 0.1);
+            } catch(e) {}
+            this.autoOsc = null;
+        }
+    }
+
+    /**
+     * 周波数リアルタイム監視ループ
+     */
+    startMonitoring() {
+        if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
+
+        const update = () => {
+            let freq = 0;
+            const now = this.ctx.currentTime;
+
+            if (this.currentMode === 'MANUAL' && this.manualOsc) {
+                freq = this.manualOsc.frequency.getValueAtTime(now);
+            } else if ((this.currentMode.startsWith('AUTO') || this.currentMode === 'INTERSECTION') && this.autoOsc) {
+                freq = this.autoOsc.frequency.getValueAtTime(now);
+            }
+
+            if (this.onUpdateCallback) {
+                this.onUpdateCallback({
+                    mode: this.currentMode,
+                    frequency: Math.round(freq)
+                });
+            }
+
+            if (this.currentMode !== 'STOP') {
+                this.animFrameId = requestAnimationFrame(update);
+            } else {
+                if (this.onUpdateCallback) {
+                    this.onUpdateCallback({ mode: 'STOP', frequency: 0 });
+                }
+            }
+        };
+
+        update();
+    }
+}
+
+// UI Bridge & Controller Logic
+document.addEventListener('DOMContentLoaded', () => {
+    const siren = new PoliceSirenDSP();
+
+    // Elements
+    const dispMode = document.getElementById('disp-mode');
+    const dispFreq = document.getElementById('disp-freq');
+    const meterBar = document.getElementById('meter-bar');
+
+    const btnManual = document.getElementById('btn-manual');
+    const btnAuto4s = document.getElementById('btn-auto-4s');
+    const btnAuto8s = document.getElementById('btn-auto-8s');
+    const btnIntersection = document.getElementById('btn-intersection');
+    const btnStop = document.getElementById('btn-stop');
+
+    // UI Redraw Callback
+    siren.onUpdateCallback = (data) => {
+        dispMode.textContent = data.mode;
+        if (data.frequency > 0) {
+            dispFreq.textContent = `${data.frequency} Hz`;
+            // Calculate percentage relative to 770Hz - 1350Hz range
+            const pct = Math.min(100, Math.max(0, ((data.frequency - 770) / (1350 - 770)) * 100));
+            meterBar.style.width = `${pct}%`;
+        } else {
+            dispFreq.textContent = `--- Hz`;
+            meterBar.style.width = `0%`;
+        }
+    };
+
+    // --- Event Listeners ---
+
+    // Manual Siren (Hold or Repetitive Click with Instant Reset Interrupt)
+    let isManualPressed = false;
+
+    const startManual = (e) => {
+        if (e) e.preventDefault();
+        if (isManualPressed) return; // 重複発火防止
+        isManualPressed = true;
+        btnManual.classList.add('active');
+        siren.triggerManualStart();
+    };
+
+    const endManual = (e) => {
+        if (e) e.preventDefault();
+        if (!isManualPressed) return;
+        isManualPressed = false;
+        btnManual.classList.remove('active');
+        siren.triggerManualRelease();
+    };
+
+    btnManual.addEventListener('mousedown', startManual);
+    btnManual.addEventListener('mouseup', endManual);
+    btnManual.addEventListener('mouseleave', endManual);
+
+    btnManual.addEventListener('touchstart', startManual);
+    btnManual.addEventListener('touchend', endManual);
+
+    // Auto Sirens
+    btnAuto4s.addEventListener('click', () => siren.startAutoSiren(4));
+    btnAuto8s.addEventListener('click', () => siren.startAutoSiren(8));
+
+    // Intersection
+    btnIntersection.addEventListener('click', () => siren.triggerIntersection());
+
+    // Stop
+    btnStop.addEventListener('click', () => siren.stopAll());
+
+    // Keyboard Hotkeys
+    window.addEventListener('keydown', (e) => {
+        if (e.repeat) return; // リピートイベント無視（割り込みは離して再度押した瞬間）
+        if (e.code === 'Space') {
+            startManual(e);
+        } else if (e.key === '1') {
+            siren.startAutoSiren(4);
+        } else if (e.key === '2') {
+            siren.startAutoSiren(8);
+        } else if (e.key === '3') {
+            siren.triggerIntersection();
+        } else if (e.code === 'Escape') {
+            siren.stopAll();
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+            endManual(e);
+        }
+    });
+});
 </script>
 </body>
 </html>
