@@ -1,832 +1,199 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PATLITE SAP-Series Siren Amp Emulator (Precision Timing Model)</title>
-    <style>
-        :root {
-            --panel-bg: #141519;
-            --panel-border: #2a2c36;
-            --card-bg: #1d1f27;
-            --text-main: #f0f2f8;
-            --text-sub: #828696;
-            --accent-red: #ff3b30;
-            --accent-red-glow: rgba(255, 59, 48, 0.4);
-            --accent-blue: #0a84ff;
-            --accent-blue-glow: rgba(10, 132, 255, 0.4);
-            --accent-amber: #ff9f0a;
-            --accent-amber-glow: rgba(255, 159, 10, 0.4);
-            --accent-green: #30d158;
-        }
-
-        body {
-            margin: 0;
-            padding: 24px 16px;
-            background-color: #08090b;
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 840px;
-        }
-
-        .amp-panel {
-            background: var(--panel-bg);
-            border: 2px solid var(--panel-border);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--panel-border);
-            padding-bottom: 16px;
-            margin-bottom: 20px;
-        }
-
-        .header-title h1 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            color: #ffffff;
-        }
-
-        .header-title p {
-            margin: 4px 0 0 0;
-            font-size: 11px;
-            color: var(--text-sub);
-        }
-
-        .status-badge {
-            font-family: monospace;
-            font-size: 12px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            background: #0b0c0e;
-            border: 1px solid #1f212b;
-            color: var(--accent-green);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
-        }
-
-        .visualizer-card {
-            background: #000000;
-            border: 1px solid var(--panel-border);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 24px;
-        }
-
-        canvas {
-            width: 100%;
-            height: 140px;
-            display: block;
-            border-radius: 4px;
-        }
-
-        .telemetry {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            font-family: monospace;
-            font-size: 11px;
-            color: var(--text-sub);
-        }
-
-        .telemetry span {
-            color: var(--text-main);
-            font-weight: bold;
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-        }
-
-        .control-group {
-            background: var(--card-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 8px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .control-group h2 {
-            margin: 0;
-            font-size: 11px;
-            color: var(--text-sub);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            text-align: center;
-        }
-
-        .btn {
-            background: #252834;
-            color: var(--text-main);
-            border: 1px solid #383c4e;
-            border-radius: 6px;
-            padding: 14px 10px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            user-select: none;
-            outline: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .btn:hover {
-            background: #2f3342;
-            border-color: #4a4f66;
-        }
-
-        .btn:active {
-            transform: translateY(1px);
-        }
-
-        .btn small {
-            font-size: 10px;
-            font-weight: normal;
-            color: var(--text-sub);
-        }
-
-        .btn-auto.active {
-            background: #0f2b48;
-            border-color: var(--accent-blue);
-            color: #8ac0ff;
-            box-shadow: 0 0 12px var(--accent-blue-glow);
-        }
-
-        .btn-manual {
-            height: 100%;
-            background: #3d1a1a;
-            border-color: #662b2b;
-            color: #ffb3b3;
-        }
-
-        .btn-manual:hover {
-            background: #4d2222;
-        }
-
-        .btn-manual.active {
-            background: #661818;
-            border-color: var(--accent-red);
-            color: #ffffff;
-            box-shadow: 0 0 16px var(--accent-red-glow);
-        }
-
-        .btn-alarm.active {
-            background: #482f0f;
-            border-color: var(--accent-amber);
-            color: #ffd18a;
-            box-shadow: 0 0 12px var(--accent-amber-glow);
-        }
-
-        .btn-stop {
-            background: #281818;
-            border-color: #522828;
-            color: #ff9999;
-        }
-
-        .btn-stop:hover {
-            background: #3d2020;
-            color: #ffffff;
-        }
-
-        .footer-note {
-            margin-top: 16px;
-            font-size: 11px;
-            color: var(--text-sub);
-            text-align: center;
-            line-height: 1.5;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="amp-panel">
-        <div class="header">
-            <div class="header-title">
-                <h1>ELECTRONIC SIREN AMPLIFIER</h1>
-                <p>PATLITE SAP-Series Standard Ratio Calibrated Model</p>
-            </div>
-            <div class="status-badge">
-                <div id="status-dot" class="status-dot"></div>
-                <span id="status-text">STANDBY</span>
-            </div>
-        </div>
-
-        <div class="visualizer-card">
-            <canvas id="canvas"></canvas>
-            <div class="telemetry">
-                <div>FREQ: <span id="telemetry-freq">0.0 Hz</span></div>
-                <div>STATE: <span id="telemetry-mode">OFF</span></div>
-                <div>AMP OUTPUT: <span id="telemetry-vol">0 %</span></div>
-            </div>
-        </div>
-
-        <div class="controls-grid">
-            <div class="control-group">
-                <h2>自動周期 (AUTO)</h2>
-                <button id="btn-auto-4" class="btn btn-auto">
-                    4秒周期 (巡回)
-                    <small>立上り0.75s / 連続1.25s / 余音2.0s</small>
-                </button>
-                <button id="btn-auto-8" class="btn btn-auto">
-                    8秒周期 (高速)
-                    <small>立上り1.5s / 連続2.5s / 余音4.0s</small>
-                </button>
-            </div>
-
-            <div class="control-group">
-                <h2>手動押下 (MANUAL)</h2>
-                <button id="btn-manual" class="btn btn-manual">
-                    手動サイレン (ウー)
-                    <small>長押し: 上昇1.3s / 離す: 余韻3.5s</small>
-                </button>
-            </div>
-
-            <div class="control-group">
-                <h2>交差点警報 (OVERLAY)</h2>
-                <button id="btn-alarm" class="btn btn-alarm">
-                    交差点警報
-                    <small>1200Hz+1550Hz (11.5Hz変調)</small>
-                </button>
-            </div>
-
-            <div class="control-group">
-                <h2>マスター制御</h2>
-                <button id="btn-stop" class="btn btn-stop">
-                    全音停止 (STOP)
-                    <small>慣性降下即時キャンセル</small>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer-note">
-        ※4秒(0.75s/1.25s/2.0s)・8秒(1.5s/2.5s/4.0s)の立上り・連続音・余音比率の精密タイムラインモデル。
-    </div>
-</div>
-
-<script>
-// 規格定数
-const FREQ_MIN = 770.0;   // 最低周波数 (Hz)
-const FREQ_MAX = 1350.0;  // 最高周波数 (Hz)
-const FREQ_OFF = 0.01;    // 消音時ベース周波数 (Hz)
-
-let audioCtx = null;
-let masterGain = null;
-let speakerFilterBank = null;
-let analyser = null;
-
-let mainSirenNode = null;
-let intersectionAlarmNode = null;
-
-let isAudioInitialized = false;
-
-// スピーカーアンプフィルター
-function createSpeakerEmulationFilter(ctx) {
-    const input = ctx.createGain();
-    const output = ctx.createGain();
-
-    const hpf = ctx.createBiquadFilter();
-    hpf.type = 'highpass';
-    hpf.frequency.value = 400;
-    hpf.Q.value = 0.7;
-
-    const bpf = ctx.createBiquadFilter();
-    bpf.type = 'peaking';
-    bpf.frequency.value = 1800;
-    bpf.gain.value = 6.0; 
-    bpf.Q.value = 1.2;
-
-    const lpf = ctx.createBiquadFilter();
-    lpf.type = 'lowpass';
-    lpf.frequency.value = 4500;
-    lpf.Q.value = 0.7;
-
-    input.connect(hpf);
-    hpf.connect(bpf);
-    bpf.connect(lpf);
-    lpf.connect(output);
-
-    return { input, output };
-}
-
-function initAudioEngine() {
-    if (isAudioInitialized) return;
-
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    audioCtx = new AudioContextClass();
-
-    const limiter = audioCtx.createDynamicsCompressor();
-    limiter.threshold.value = -2.0;
-    limiter.knee.value = 3.0;
-    limiter.ratio.value = 20.0;
-    limiter.attack.value = 0.002;
-    limiter.release.value = 0.05;
-
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 1024;
-
-    speakerFilterBank = createSpeakerEmulationFilter(audioCtx);
-
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = 1.0;
-
-    speakerFilterBank.output.connect(limiter);
-    limiter.connect(masterGain);
-    masterGain.connect(analyser);
-    analyser.connect(audioCtx.destination);
-
-    isAudioInitialized = true;
-    updateStatus('READY', 'var(--accent-green)');
-}
-
-/**
- * 主波形オシレータ（立上り/連続音/余音比率エンジン）
- */
-class MainSirenEngine {
-    constructor(ctx, destination) {
-        this.ctx = ctx;
-        this.destination = destination;
-
-        this.outputGain = ctx.createGain();
-        this.outputGain.gain.value = 0;
-        this.outputGain.connect(destination);
-
-        this.oscMain = ctx.createOscillator();
-        this.oscMain.type = 'triangle';
-
-        this.oscHarmonic = ctx.createOscillator();
-        this.oscHarmonic.type = 'sawtooth';
-
-        const harmonicGain = ctx.createGain();
-        harmonicGain.gain.value = 0.18;
-
-        this.oscMain.connect(this.outputGain);
-        this.oscHarmonic.connect(harmonicGain).connect(this.outputGain);
-
-        const now = ctx.currentTime;
-        this.oscMain.start(now);
-        this.oscHarmonic.start(now);
-
-        this.mode = 'OFF'; 
-        this.nextScheduleTime = 0;
-        this.timerId = null;
-    }
-
-    getCurrentFrequency() {
-        return this.oscMain.frequency.value;
-    }
-
-    setFreqInstant(freq, time) {
-        const f = Math.max(FREQ_OFF, freq);
-        this.oscMain.frequency.setValueAtTime(f, time);
-        this.oscHarmonic.frequency.setValueAtTime(f, time);
-    }
-
-    linearRampFreq(freq, time) {
-        const f = Math.max(FREQ_OFF, freq);
-        this.oscMain.frequency.linearRampToValueAtTime(f, time);
-        this.oscHarmonic.frequency.linearRampToValueAtTime(f, time);
-    }
-
-    setTargetFreq(freq, time, timeConstant) {
-        const f = Math.max(FREQ_OFF, freq);
-        this.oscMain.frequency.setTargetAtTime(f, time, timeConstant);
-        this.oscHarmonic.frequency.setTargetAtTime(f, time, timeConstant);
-    }
-
-    cancelSchedules() {
-        const now = this.ctx.currentTime;
-        this.oscMain.frequency.cancelScheduledValues(now);
-        this.oscHarmonic.frequency.cancelScheduledValues(now);
-        this.outputGain.gain.cancelScheduledValues(now);
-        if (this.timerId) {
-            clearTimeout(this.timerId);
-            this.timerId = null;
-        }
-    }
-
-    // --- 自動周期 (指定比率パラメータ組み込み) ---
-    startAutoCycle(cycleSec) {
-        this.cancelSchedules();
-        this.mode = (cycleSec === 4) ? 'AUTO 4S' : 'AUTO 8S';
-
-        const now = this.ctx.currentTime;
-        const currentF = this.getCurrentFrequency();
-
-        // モード別の精密タイムライン定義
-        let tRise, tHold, tFall;
-        if (cycleSec === 4) {
-            tRise = 0.75;  // 立上り 0.75s
-            tHold = 1.25;  // 連続音 1.25s
-            tFall = 2.00;  // 余音   2.00s
-        } else {
-            tRise = 1.50;  // 立上り 1.50s
-            tHold = 2.50;  // 連続音 2.50s
-            tFall = 4.00;  // 余音   4.00s
-        }
-
-        // 音量ON
-        this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
-        this.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.03);
-
-        // ボタン押下直後の現在周波数から最初の最高音(1350Hz)へのスムーズな初回上昇
-        let startF = (currentF < FREQ_MIN + 5) ? FREQ_MIN : currentF;
-        if (startF > FREQ_MAX) startF = FREQ_MAX;
-
-        const initialRiseDuration = ((FREQ_MAX - startF) / (FREQ_MAX - FREQ_MIN)) * tRise;
-
-        this.setFreqInstant(startF, now);
-        this.linearRampFreq(FREQ_MAX, now + initialRiseDuration);
-
-        // 最初の1350Hz到達時刻から「連続音 -> 余音 -> 立上り」のルーティンを開始
-        let tLoopStart = now + initialRiseDuration;
-        this.nextScheduleTime = tLoopStart;
-
-        const scheduleLoop = () => {
-            if (this.mode !== 'AUTO 4S' && this.mode !== 'AUTO 8S') return;
-
-            const t = this.ctx.currentTime;
-
-            while (this.nextScheduleTime < t + 2.0) {
-                const t0 = this.nextScheduleTime;
-
-                // 1. 連続音：最高音(1350Hz)を維持 (4s: 1.25s / 8s: 2.5s)
-                this.setFreqInstant(FREQ_MAX, t0);
-                const t1 = t0 + tHold;
-                this.setFreqInstant(FREQ_MAX, t1);
-
-                // 2. 余音：1350Hz -> 770Hz へ降下 (4s: 2.0s / 8s: 4.0s)
-                const t2 = t1 + tFall;
-                this.linearRampFreq(FREQ_MIN, t2);
-
-                // 3. 立上り：770Hz -> 1350Hz へ上昇 (4s: 0.75s / 8s: 1.5s)
-                const t3 = t2 + tRise;
-                this.linearRampFreq(FREQ_MAX, t3);
-
-                // 次の周期の開始位置へ更新
-                this.nextScheduleTime = t3;
-            }
-            this.timerId = setTimeout(scheduleLoop, 200);
-        };
-
-        scheduleLoop();
-    }
-
-    startManualPress() {
-        this.cancelSchedules();
-        this.mode = 'MANUAL (WOO)';
-
-        const now = this.ctx.currentTime;
-        let currentF = this.getCurrentFrequency();
-        if (currentF < FREQ_MIN) currentF = FREQ_MIN;
-
-        this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
-        this.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.03);
-
-        this.setFreqInstant(currentF, now);
-        this.setTargetFreq(FREQ_MAX, now, 0.35); // 手動長押し: 約1.3秒で全開
-    }
-
-    stopWithInertia() {
-        if (this.mode === 'OFF' || this.mode === 'INERTIA') return;
-
-        this.cancelSchedules();
-        this.mode = 'INERTIA';
-
-        const now = this.ctx.currentTime;
-        const currentF = this.getCurrentFrequency();
-
-        this.setFreqInstant(currentF, now);
-        this.setTargetFreq(FREQ_MIN, now, 0.85); // 3.5秒かけて慣性降下
-
-        this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
-        this.outputGain.gain.setTargetAtTime(0.0, now, 0.9);
-
-        this.timerId = setTimeout(() => {
-            this.mode = 'OFF';
-            this.setFreqInstant(FREQ_MIN, this.ctx.currentTime);
-        }, 3600);
-    }
-
-    killImmediately() {
-        this.cancelSchedules();
-        this.mode = 'OFF';
-        const now = this.ctx.currentTime;
-        this.outputGain.gain.setValueAtTime(0, now);
-        this.setFreqInstant(FREQ_MIN, now);
-    }
-}
-
-/**
- * 交差点警報音 (1200Hz + 1550Hz)
- */
-class IntersectionAlarmEngine {
-    constructor(ctx, destination) {
-        this.ctx = ctx;
-        this.destination = destination;
-
-        this.mainGain = ctx.createGain();
-        this.mainGain.gain.value = 0;
-        this.mainGain.connect(destination);
-
-        this.lfo = ctx.createOscillator();
-        this.lfo.type = 'square';
-        this.lfo.frequency.value = 11.5;
-
-        const lfoGain = ctx.createGain();
-        lfoGain.gain.value = 0.5;
-
-        const dcOffset = ctx.createConstantSource();
-        dcOffset.offset.value = 0.5;
-
-        const modGain = ctx.createGain();
-        modGain.gain.value = 0;
-
-        this.lfo.connect(lfoGain);
-        lfoGain.connect(modGain.gain);
-        dcOffset.connect(modGain.gain);
-        modGain.connect(this.mainGain);
-
-        const freqs = [1200, 1550];
-        this.oscs = freqs.map(f => {
-            const osc = ctx.createOscillator();
-            osc.type = 'square';
-            osc.frequency.value = f;
-
-            const filter = ctx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.value = f;
-            filter.Q.value = 3.0;
-
-            osc.connect(filter).connect(modGain);
-            return osc;
-        });
-
-        const now = ctx.currentTime;
-        this.lfo.start(now);
-        dcOffset.start(now);
-        this.oscs.forEach(o => o.start(now));
-
-        this.isActive = false;
-    }
-
-    start() {
-        const now = this.ctx.currentTime;
-        this.mainGain.gain.cancelScheduledValues(now);
-        this.mainGain.gain.setValueAtTime(this.mainGain.gain.value, now);
-        this.mainGain.gain.linearRampToValueAtTime(0.7, now + 0.03);
-        this.isActive = true;
-    }
-
-    stop() {
-        const now = this.ctx.currentTime;
-        this.mainGain.gain.cancelScheduledValues(now);
-        this.mainGain.gain.setValueAtTime(this.mainGain.gain.value, now);
-        this.mainGain.gain.linearRampToValueAtTime(0, now + 0.05);
-        this.isActive = false;
-    }
-}
-
-// UIバインド
-const btnAuto4 = document.getElementById('btn-auto-4');
-const btnAuto8 = document.getElementById('btn-auto-8');
-const btnManual = document.getElementById('btn-manual');
-const btnAlarm = document.getElementById('btn-alarm');
-const btnStop = document.getElementById('btn-stop');
-
-const statusDot = document.getElementById('status-dot');
-const statusText = document.getElementById('status-text');
-
-const telemetryFreq = document.getElementById('telemetry-freq');
-const telemetryMode = document.getElementById('telemetry-mode');
-const telemetryVol = document.getElementById('telemetry-vol');
-
-function updateStatus(text, color) {
-    statusText.textContent = text;
-    statusDot.style.backgroundColor = color;
-    statusDot.style.boxShadow = `0 0 8px ${color}`;
-}
-
-function clearActiveUI() {
-    btnAuto4.classList.remove('active');
-    btnAuto8.classList.remove('active');
-    btnManual.classList.remove('active');
-}
-
-function ensureAudioReady() {
-    initAudioEngine();
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-    if (!mainSirenNode) {
-        mainSirenNode = new MainSirenEngine(audioCtx, speakerFilterBank.input);
-    }
-    if (!intersectionAlarmNode) {
-        intersectionAlarmNode = new IntersectionAlarmEngine(audioCtx, speakerFilterBank.input);
-    }
-}
-
-function handleAutoToggle(cycleSec) {
-    ensureAudioReady();
-    const isTarget4 = (cycleSec === 4);
-    const targetBtn = isTarget4 ? btnAuto4 : btnAuto8;
-    const isAlreadyActive = targetBtn.classList.contains('active');
-
-    if (isAlreadyActive) {
-        mainSirenNode.stopWithInertia();
-        clearActiveUI();
-    } else {
-        clearActiveUI();
-        targetBtn.classList.add('active');
-        mainSirenNode.startAutoCycle(cycleSec);
-    }
-}
-
-btnAuto4.addEventListener('click', () => handleAutoToggle(4));
-btnAuto8.addEventListener('click', () => handleAutoToggle(8));
-
-function handleManualStart() {
-    ensureAudioReady();
-    if (btnManual.classList.contains('active')) return;
-    clearActiveUI();
-    btnManual.classList.add('active');
-    mainSirenNode.startManualPress();
-}
-
-function handleManualRelease() {
-    if (!btnManual.classList.contains('active')) return;
-    btnManual.classList.remove('active');
-    if (mainSirenNode) {
-        mainSirenNode.stopWithInertia();
-    }
-}
-
-btnManual.addEventListener('mousedown', handleManualStart);
-btnManual.addEventListener('mouseup', handleManualRelease);
-btnManual.addEventListener('mouseleave', handleManualRelease);
-
-btnManual.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    handleManualStart();
-}, { passive: false });
-
-btnManual.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    handleManualRelease();
-}, { passive: false });
-
-window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        handleManualStart();
-    }
-});
-
-window.addEventListener('keyup', (e) => {
-    if (e.code === 'Space') {
-        e.preventDefault();
-        handleManualRelease();
-    }
-});
-
-btnAlarm.addEventListener('click', () => {
-    ensureAudioReady();
-    if (intersectionAlarmNode.isActive) {
-        intersectionAlarmNode.stop();
-        btnAlarm.classList.remove('active');
-    } else {
-        intersectionAlarmNode.start();
-        btnAlarm.classList.add('active');
-    }
-});
-
-btnStop.addEventListener('click', () => {
-    if (!isAudioInitialized) return;
-    clearActiveUI();
-    btnAlarm.classList.remove('active');
-    if (mainSirenNode) mainSirenNode.killImmediately();
-    if (intersectionAlarmNode) intersectionAlarmNode.stop();
-});
-
-// Canvas オシロスコープ描画
-const canvas = document.getElementById('canvas');
-const canvasCtx = canvas.getContext('2d');
-
-function renderVisualizer() {
-    requestAnimationFrame(renderVisualizer);
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        canvasCtx.scale(dpr, dpr);
-    }
-
-    const w = rect.width;
-    const h = rect.height;
-
-    canvasCtx.fillStyle = '#050608';
-    canvasCtx.fillRect(0, 0, w, h);
-
-    canvasCtx.strokeStyle = '#141720';
-    canvasCtx.lineWidth = 1;
-    for (let x = 0; x < w; x += 30) {
-        canvasCtx.beginPath();
-        canvasCtx.moveTo(x, 0);
-        canvasCtx.lineTo(x, h);
-        canvasCtx.stroke();
-    }
-    for (let y = 0; y < h; y += 20) {
-        canvasCtx.beginPath();
-        canvasCtx.moveTo(0, y);
-        canvasCtx.lineTo(w, y);
-        canvasCtx.stroke();
-    }
-
-    if (!analyser) return;
-
-    const bufferLength = analyser.frequencyBinCount;
-    const timeData = new Uint8Array(bufferLength);
-    analyser.getByteTimeDomainData(timeData);
-
-    canvasCtx.lineWidth = 2;
-    canvasCtx.strokeStyle = '#30d158';
-    canvasCtx.shadowBlur = 8;
-    canvasCtx.shadowColor = 'rgba(48, 209, 88, 0.5)';
-    canvasCtx.beginPath();
-
-    const sliceWidth = w / bufferLength;
-    let x = 0;
-
-    for (let i = 0; i < bufferLength; i++) {
-        const v = timeData[i] / 128.0;
-        const y = (v * h) / 2;
-
-        if (i === 0) {
-            canvasCtx.moveTo(x, y);
-        } else {
-            canvasCtx.lineTo(x, y);
-        }
-        x += sliceWidth;
-    }
-
-    canvasCtx.lineTo(w, h / 2);
-    canvasCtx.stroke();
-    canvasCtx.shadowBlur = 0;
-
-    if (mainSirenNode) {
-        const freq = (mainSirenNode.mode === 'OFF') ? 0 : mainSirenNode.getCurrentFrequency();
-        telemetryFreq.textContent = `${freq.toFixed(1)} Hz`;
-        telemetryMode.textContent = mainSirenNode.mode;
-
-        const vol = Math.round(mainSirenNode.outputGain.gain.value * 100);
-        telemetryVol.textContent = `${vol} %`;
-
-        if (mainSirenNode.mode !== 'OFF' || (intersectionAlarmNode && intersectionAlarmNode.isActive)) {
-            updateStatus('TRANSMITTING', 'var(--accent-red)');
-        } else {
-            updateStatus('READY', 'var(--accent-green)');
-        }
-    }
-}
-
-renderVisualizer();
-</script>
-</body>
-</html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PATLITE Electronic Siren Amplifier Simulator</title>
+<style>
+  :root {
+    --panel-bg: #2b2d30;
+    --panel-border: #1a1b1d;
+    --bezel-color: #d1d5db;
+    --btn-red: #cc0000;
+    --btn-red-active: #ff3333;
+    --btn-black: #111111;
+    --led-red-off: #440000;
+    --led-red-on: #ff0000;
+  }
+
+  body {
+    background-color: #0f1012;
+    color: #e5e7eb;
+    font-family: 'Arial', 'Helvetica', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    user-select: none;
+  }
+
+  .amplifier-unit {
+    background: var(--panel-bg);
+    border: 4px solid var(--panel-border);
+    border-radius: 12px;
+    width: 680px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+    position: relative;
+  }
+
+  .brand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #404247;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+  }
+
+  .brand-title {
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #f3f4f6;
+  }
+
+  .model-name {
+    font-size: 14px;
+    color: #9ca3af;
+    font-family: monospace;
+  }
+
+  .control-panel {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr;
+    gap: 20px;
+    align-items: center;
+    background: #212326;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #374151;
+  }
+
+  .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin-bottom: 10px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  /* モード切り替えスイッチ */
+  .rotary-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .rotary-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .btn {
+    background: linear-gradient(180deg, #374151 0%, #1f2937 100%);
+    color: #ffffff;
+    border: 1px solid #4b5563;
+    padding: 12px;
+    font-weight: bold;
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #111827;
+    transition: all 0.05s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #111827;
+  }
+
+  .btn.active {
+    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+    border-color: #60a5fa;
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+  }
+
+  /* 手動サイレンボタン (赤色特大) */
+  .manual-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-danger {
+    background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
+    border: 2px solid #f87171;
+    color: white;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 6px 0 #7f1d1d, 0 10px 15px rgba(0,0,0,0.5);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .btn-danger:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #7f1d1d, 0 5px 10px rgba(0,0,0,0.5);
+    background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  }
+
+  /* 停止・音量エリア */
+  .system-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .btn-stop {
+    background: linear-gradient(180deg, #4b5563 0%, #1f2937 100%);
+    border-color: #6b7280;
+    color: #ef4444;
+  }
+
+  .volume-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .volume-box label {
+    font-size: 11px;
+    color: #9ca3af;
+  }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: #3b82f6;
+  }
+
+  /* モニター・インジケーター */
+  .display-panel {
+    margin-top: 20px;
+    background: #000000;
+    border: 2px solid #374151;
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .status-text {
+    font-family: monospace;
+    color: #10b981;
+    font-size: 14px;
+  }
+
+  .frequency-display {
+    font
