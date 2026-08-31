@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Siren Controller</title>
+<style>
+  body {
+    background-color: #1a1a1a;
+    color: #ccc;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  
+  /* サイレンアンプ本体のパネル */
+  .amp-panel {
+    background: linear-gradient(145deg, #2b2b2b, #1e1e1e);
+    border: 4px solid #444;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    text-align: center;
+    width: 320px;
+  }
+
+  .brand-title {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #888;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+  }
+
+  /* ボタンコンテナ */
+  .button-group {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+  }
+
+  .btn-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-label {
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 10px;
+    color: #aaa;
+  }
+
+  /* サイレンアンプ特有の赤・朱色ボタン */
+  .siren-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    font-weight: bold;
+    font-size: 16px;
+    color: #fff;
+    background: radial-gradient(circle at 30% 30%, #ff5555, #990000);
+    box-shadow: 0 6px 0 #550000, 0 10px 15px rgba(0,0,0,0.5);
+    transition: all 0.1s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ボタン押下時の演出（押し込まれた状態） */
+  .siren-btn:active, .siren-btn.active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #550000, 0 4px 6px rgba(0,0,0,0.5);
+    background: radial-gradient(circle at 30% 30%, #ff7777, #bb0000);
+  }
+
+  .status-light {
+    width: 12px;
+    height: 12px;
+    background-color: #333;
+    border-radius: 50%;
+    margin: 0 auto 15px auto;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+  }
+
+  .status-light.active {
+    background-color: #ff0000;
+    box-shadow: 0 0 10px #ff0000;
+  }
+</style>
+</head>
+<body>
+
+<div class="amp-panel">
+  <div class="brand-title">PATROL SIREN AMP</div>
+  <div id="status" class="status-light"></div>
+  
+  <div class="button-group">
+    <div class="btn-wrapper">
+      <button id="btn8" class="siren-btn">8s</button>
+      <span class="btn-label">手動 8秒周期</span>
+    </div>
+    <div class="btn-wrapper">
+      <button id="btn4" class="siren-btn">4s</button>
+      <span class="btn-label">手動 4秒周期</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  let audioCtx = null;
+  let oscillator = null;
+  let gainNode = null;
+  let currentTimer = null;
+
+  // AudioContextの初期化
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
+
+  // サイレン発振の開始
+  function startSiren() {
+    initAudio();
+    if (oscillator) stopSirenAudio();
+
+    oscillator = audioCtx.createOscillator();
+    gainNode = audioCtx.createGain();
+
+    // パトカー特有の金属的な音色に近い鋸歯状波を使用
+    oscillator.type = 'sawtooth';
+    
+    // 基本周波数の初期値（低音）
+    oscillator.frequency.setValueAtTime(450, audioCtx.currentTime);
+    
+    // アンプ音量の立ち上がり
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    oscillator.start();
+  }
+
+  // 指定時間をかけて音を立ち上げる（ボタン押下処理）
+  function playSiren(durationSeconds, btnElement) {
+    startSiren();
+    document.getElementById('status').classList.add('active');
+    btnElement.classList.add('active');
+
+    // 押し込んでいる時間にかけて高音（約750Hz）までピッチを引上げる
+    oscillator.frequency.linearRampToValueAtTime(770, audioCtx.currentTime + Math.min(2.5, durationSeconds));
+
+    // 指定時間経過後にボタンを離した（減衰）動作へ移行
+    currentTimer = setTimeout(() => {
+      releaseSiren(btnElement);
+    }, durationSeconds * 1000);
+  }
+
+  // ボタンを離した際の減衰処理（余韻を残して落ちる）
+  function releaseSiren(btnElement) {
+    if (!oscillator) return;
+
+    const now = audioCtx.currentTime;
+    
+    // ピッチを急速に落とす
+    oscillator.frequency.cancelScheduledValues(now);
+    oscillator.frequency.setValueAtTime(oscillator.frequency.value, now);
+    oscillator.frequency.exponentialRampToValueAtTime(300, now + 1.8);
+
+    // 音量を絞る
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    gainNode.gain.linearRampToValueAtTime(0.001, now + 1.8);
+
+    setTimeout(() => {
+      stopSirenAudio();
+      document.getElementById('status').classList.remove('active');
+      if (btnElement) btnElement.classList.remove('active');
+    }, 1800);
+  }
+
+  function stopSirenAudio() {
+    if (oscillator) {
+      try { oscillator.stop(); } catch(e) {}
+      oscillator.disconnect();
+      oscillator = null;
+    }
+  }
+
+  // イベント設定
+  const btn8 = document.getElementById('btn8');
+  const btn4 = document.getElementById('btn4');
+
+  function triggerPattern(seconds, btn) {
+    if (currentTimer) clearTimeout(currentTimer);
+    playSiren(seconds, btn);
+  }
+
+  btn8.addEventListener('click', () => triggerPattern(8, btn8));
+  btn4.addEventListener('click', () => triggerPattern(4, btn4));
+</script>
+</body>
+</html>
