@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSP SIREN AMP - Heavy Low-Pitch & Slow-Sweep Model</title>
+<title>PATLITE SAP Series Siren Amp Emulator</title>
 <style>
     :root {
-        --bg-color: #0a0a0c;
-        --panel-bg: #1a1a20;
+        --bg-color: #0d0d11;
+        --panel-bg: #1c1c24;
         --text-main: #e0e0e0;
-        --text-muted: #666;
-        --border-main: #333;
+        --text-muted: #777;
+        --border-main: #333344;
         --accent-red: #ff3333;
-        --accent-red-glow: rgba(255, 51, 51, 0.6);
-        --accent-blue: #33aaff;
-        --accent-blue-glow: rgba(51, 170, 255, 0.4);
-        --accent-yellow: #ffaa33;
-        --accent-yellow-glow: rgba(255, 170, 51, 0.4);
-        --accent-green: #33ff66;
+        --accent-red-glow: rgba(255, 51, 51, 0.5);
+        --accent-blue: #3399ff;
+        --accent-blue-glow: rgba(51, 153, 255, 0.4);
+        --accent-yellow: #ffbb33;
+        --accent-yellow-glow: rgba(255, 187, 51, 0.4);
+        --accent-green: #00ff66;
     }
 
     body {
@@ -40,7 +40,7 @@
         padding: 25px;
         width: 100%;
         max-width: 800px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.05);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.9), inset 0 1px 2px rgba(255,255,255,0.1);
     }
 
     .header {
@@ -52,14 +52,13 @@
 
     .header h1 {
         margin: 0;
-        font-size: 24px;
-        letter-spacing: 3px;
-        color: #ddd;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        font-size: 22px;
+        letter-spacing: 2px;
+        color: #eee;
     }
 
     .header p {
-        margin: 5px 0 0 0;
+        margin: 6px 0 0 0;
         font-size: 12px;
         color: var(--text-muted);
         letter-spacing: 1px;
@@ -67,18 +66,17 @@
 
     .visualizer-container {
         background: #000;
-        border: 3px solid #222;
+        border: 2px solid #222233;
         border-radius: 8px;
         margin-bottom: 25px;
         padding: 2px;
         position: relative;
         overflow: hidden;
-        box-shadow: inset 0 0 20px rgba(51, 255, 102, 0.1);
     }
 
     canvas {
         width: 100%;
-        height: 160px;
+        height: 150px;
         display: block;
         border-radius: 4px;
     }
@@ -88,103 +86,90 @@
         bottom: 8px;
         left: 10px;
         font-family: monospace;
-        font-size: 12px;
+        font-size: 11px;
         color: var(--accent-green);
-        text-shadow: 0 0 5px var(--accent-green);
+        text-shadow: 0 0 4px var(--accent-green);
         pointer-events: none;
     }
 
     .controls {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 20px;
+        gap: 15px;
     }
 
     .control-group {
-        background: #111;
+        background: #121218;
         padding: 15px;
         border-radius: 8px;
-        border: 1px solid #2a2a2a;
+        border: 1px solid #282836;
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        gap: 10px;
     }
 
     .control-group h2 {
         margin: 0;
-        font-size: 13px;
-        color: #888;
+        font-size: 12px;
+        color: #889;
         text-align: center;
         letter-spacing: 1px;
     }
 
     button {
-        background: #222;
+        background: #252532;
         color: #ccc;
-        border: 2px solid #444;
+        border: 1.5px solid #444455;
         border-radius: 6px;
-        padding: 16px 10px;
-        font-size: 14px;
+        padding: 14px 8px;
+        font-size: 13px;
         font-weight: bold;
         cursor: pointer;
         transition: all 0.1s ease;
-        text-shadow: 1px 1px 2px #000;
         outline: none;
         user-select: none;
         -webkit-tap-highlight-color: transparent;
     }
 
     button:active {
-        transform: translateY(2px);
+        transform: translateY(1px);
     }
 
-    .btn-auto:hover { border-color: #557799; color: #fff; }
     .btn-auto.active {
         border-color: var(--accent-blue);
         color: var(--accent-blue);
-        background: #1a2a3a;
-        box-shadow: 0 0 15px var(--accent-blue-glow), inset 0 0 10px rgba(0,0,0,0.5);
+        background: #182838;
+        box-shadow: 0 0 12px var(--accent-blue-glow);
     }
 
     .btn-manual {
-        border-color: #733;
-        color: #f88;
+        border-color: #773333;
+        color: #ffaaaa;
         height: 100%;
-        min-height: 60px;
+        min-height: 55px;
     }
-    .btn-manual:hover { border-color: #944; color: #fbb; }
     .btn-manual.active {
         border-color: var(--accent-red);
         color: var(--accent-red);
-        background: #3a1a1a;
-        box-shadow: 0 0 20px var(--accent-red-glow), inset 0 0 10px rgba(0,0,0,0.5);
+        background: #381818;
+        box-shadow: 0 0 15px var(--accent-red-glow);
     }
 
     .btn-alarm.active {
         border-color: var(--accent-yellow);
         color: var(--accent-yellow);
-        background: #3a2a1a;
-        box-shadow: 0 0 15px var(--accent-yellow-glow), inset 0 0 10px rgba(0,0,0,0.5);
+        background: #382818;
+        box-shadow: 0 0 12px var(--accent-yellow-glow);
     }
 
     .btn-stop {
-        background: #3a1a1a;
-        border-color: #622;
-        color: #faa;
+        background: #381818;
+        border-color: #662222;
+        color: #ffaaaa;
     }
-    .btn-stop:hover { background: #522; color: #fff; }
     .btn-stop:active {
         background: var(--accent-red);
         color: #fff;
-    }
-    
-    .instruction {
-        margin-top: 20px;
-        font-size: 12px;
-        color: #666;
-        text-align: center;
-        line-height: 1.5;
     }
 </style>
 </head>
@@ -192,8 +177,8 @@
 
 <div class="amp-case">
     <div class="header">
-        <h1>DSP SIREN AMP</h1>
-        <p>PATLITE / SAP Heavy Sub-Low Pitch (120Hz Start) Calibrated Model</p>
+        <h1>PATLITE SAP SERIES EMULATOR</h1>
+        <p>Standard Spec Calibrated Model (770Hz - 1020Hz)</p>
     </div>
 
     <div class="visualizer-container">
@@ -223,16 +208,16 @@
             <button id="btn-stop" class="btn-stop">ALL STOP</button>
         </div>
     </div>
-    
-    <div class="instruction">
-        ・最低周波数を約120Hzまで引き下げ、出だしに重厚な低音ベースを補強。<br>
-        ・手動ボタン（ウー）および自動周期の上昇スピードをマイルドに調整。
-    </div>
 </div>
 
 <script>
 /**
- * DSP SIREN AMP EMULATOR (120Hz Ultra-Low Pitch & Slow-Sweep Version)
+ * PATLITE SAP Series Siren Amp Spec Implementation
+ * - Base Frequency: 770 Hz - 1020 Hz
+ * - 4 Sec Cycle: Up 2.0s / Down 2.0s
+ * - 8 Sec Cycle: Up 4.0s / Down 4.0s
+ * - Manual Woo: Start 0 Hz -> 1020 Hz (1.3s) -> Decay 3.5s
+ * - Intersection: 1200 Hz & 1550 Hz Dual Tone (11.5 Hz Modulation)
  */
 
 let audioCtx = null;
@@ -245,93 +230,77 @@ let activeManualVoices = [];
 let currentManualVoice = null;
 let manualKeyActive = false;
 
-// 最低周波数を約120Hzまで拡大＆上昇カーブをゆっくりに調整
-const FREQ_START = 120;        // 手動（ウー）押し始めの極低音（120Hz）
-const FREQ_AUTO_MIN = 450;     // 自動サイレン時の立ち上がり開始周波数
-const FREQ_PEAK_TARGET = 1350; // 上限ターゲット（約1350Hz）
-const FREQ_LOW_TARGET = 100;   // 減衰時の漸近ターゲット（120Hz付近へ滑らかに着地）
+// 規格に基づく周波数定数
+const FREQ_MIN = 770;      // 定常下限周波数
+const FREQ_MAX = 1020;     // 定常上限周波数
+const FREQ_OFF = 0.01;     // 完全消音時（0Hz近似）
 
 class SirenVoice {
     constructor(ctx, destination) {
         this.ctx = ctx;
         this.nodes = [];
-        this.freqParams = [];
         
-        // Output Gain
+        // メイン出力ゲイン
         this.outputGain = ctx.createGain();
         this.outputGain.gain.value = 0;
         this.outputGain.connect(destination);
         this.nodes.push(this.outputGain);
 
-        // 120Hzの重低音域をしっかり鳴らすためハイパス周波数を80Hzまで引き下げ
-        this.lowpass = ctx.createBiquadFilter();
-        this.lowpass.type = 'lowpass';
-        this.lowpass.frequency.value = 2000;
-        this.lowpass.Q.value = 0.8;
+        // バンドパスフィルタ（ホーンスピーカーの音響特性を再現）
+        this.bandpass = ctx.createBiquadFilter();
+        this.bandpass.type = 'bandpass';
+        this.bandpass.frequency.value = 1500;
+        this.bandpass.Q.value = 0.6;
+        this.bandpass.connect(this.outputGain);
+        this.nodes.push(this.bandpass);
 
-        this.highpass = ctx.createBiquadFilter();
-        this.highpass.type = 'highpass';
-        this.highpass.frequency.value = 80;
+        // 鋸形波（Sawtooth）+ 矩形波（Square）合成による金属ホーン音調再現
+        this.oscSaw = ctx.createOscillator();
+        this.oscSaw.type = 'sawtooth';
+        
+        this.oscSquare = ctx.createOscillator();
+        this.oscSquare.type = 'square';
 
-        this.lowpass.connect(this.highpass).connect(this.outputGain);
-        this.nodes.push(this.lowpass, this.highpass);
+        const mixGainSquare = ctx.createGain();
+        mixGainSquare.gain.value = 0.35;
 
-        // 波形合成
-        this.mixGain = ctx.createGain();
-        this.mixGain.gain.value = 0.8;
-        this.mixGain.connect(this.lowpass);
-        this.nodes.push(this.mixGain);
-
-        // 1. 基音 (Sawtooth)
-        this.osc1 = ctx.createOscillator();
-        this.osc1.type = 'sawtooth';
-        this.osc1.connect(this.mixGain);
-        this.freqParams.push({ param: this.osc1.frequency, ratio: 1.0 });
-
-        // 2. 芯を太くする矩形波
-        this.osc2 = ctx.createOscillator();
-        this.osc2.type = 'square';
-        this.osc2.detune.value = 4;
-        const gain2 = ctx.createGain();
-        gain2.gain.value = 0.45;
-        this.osc2.connect(gain2).connect(this.mixGain);
-        this.freqParams.push({ param: this.osc2.frequency, ratio: 1.0 });
-
-        // 3. 出だしの低音（120Hz付近）に圧倒的な厚みを出すサブオシレーター（正弦波）
-        this.osc3 = ctx.createOscillator();
-        this.osc3.type = 'sine';
-        const gain3 = ctx.createGain();
-        gain3.gain.value = 0.6; // 出だしの重低音感を強化
-        this.osc3.connect(gain3).connect(this.mixGain);
-        this.freqParams.push({ param: this.osc3.frequency, ratio: 0.5 }); // 1オクターブ下を補強
-
-        this.nodes.push(this.osc1, this.osc2, this.osc3, gain2, gain3);
+        this.oscSaw.connect(this.bandpass);
+        this.oscSquare.connect(mixGainSquare).connect(this.bandpass);
+        
+        this.nodes.push(this.oscSaw, this.oscSquare, mixGainSquare);
 
         const now = ctx.currentTime;
-        this.osc1.start(now);
-        this.osc2.start(now);
-        this.osc3.start(now);
+        this.oscSaw.start(now);
+        this.oscSquare.start(now);
     }
 
-    setFrequencyAtTime(baseFreq, time) {
-        this.freqParams.forEach(f => {
-            f.param.setValueAtTime(baseFreq * f.ratio, time);
-        });
+    setFrequencyAtTime(freq, time) {
+        const clamped = Math.max(FREQ_OFF, freq);
+        this.oscSaw.frequency.setValueAtTime(clamped, time);
+        this.oscSquare.frequency.setValueAtTime(clamped, time);
     }
 
-    setFrequencyTargetAtTime(targetBaseFreq, time, timeConstant) {
-        this.freqParams.forEach(f => {
-            f.param.setTargetAtTime(targetBaseFreq * f.ratio, time, timeConstant);
-        });
+    linearRampToFrequencyAtTime(freq, time) {
+        const clamped = Math.max(FREQ_OFF, freq);
+        this.oscSaw.frequency.linearRampToValueAtTime(clamped, time);
+        this.oscSquare.frequency.linearRampToValueAtTime(clamped, time);
+    }
+
+    setFrequencyTargetAtTime(targetFreq, time, timeConstant) {
+        const clamped = Math.max(FREQ_OFF, targetFreq);
+        this.oscSaw.frequency.setTargetAtTime(clamped, time, timeConstant);
+        this.oscSquare.frequency.setTargetAtTime(clamped, time, timeConstant);
     }
 
     cancelSchedules(time) {
         if (typeof this.outputGain.gain.cancelAndHoldAtTime === 'function') {
             this.outputGain.gain.cancelAndHoldAtTime(time);
-            this.freqParams.forEach(f => f.param.cancelAndHoldAtTime(time));
+            this.oscSaw.frequency.cancelAndHoldAtTime(time);
+            this.oscSquare.frequency.cancelAndHoldAtTime(time);
         } else {
             this.outputGain.gain.cancelScheduledValues(time);
-            this.freqParams.forEach(f => f.param.cancelScheduledValues(time));
+            this.oscSaw.frequency.cancelScheduledValues(time);
+            this.oscSquare.frequency.cancelScheduledValues(time);
         }
     }
 
@@ -355,11 +324,12 @@ class SirenVoice {
 class AutoSirenManager {
     constructor(ctx, destination, cycleLengthSec) {
         this.ctx = ctx;
-        this.cycleLength = cycleLengthSec;
+        this.cycleLength = cycleLengthSec; // 4.0s または 8.0s
+        this.halfCycle = cycleLengthSec / 2.0; // 2.0s または 4.0s
         this.voice = new SirenVoice(ctx, destination);
         
         const now = ctx.currentTime;
-        this.voice.setFrequencyAtTime(FREQ_AUTO_MIN, now);
+        this.voice.setFrequencyAtTime(FREQ_MIN, now);
         this.voice.outputGain.gain.setValueAtTime(0, now);
         this.voice.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
 
@@ -373,20 +343,15 @@ class AutoSirenManager {
     _scheduleLoop() {
         if (!this.isRunning) return;
         const now = this.ctx.currentTime;
-        const lookAhead = 1.5;
+        const lookAhead = 2.0;
         
         while (this.nextScheduleTime < now + lookAhead) {
             const t = this.nextScheduleTime;
-            const halfCycle = this.cycleLength / 2.0;
             
-            // 上昇時のタイムコンスタントを少し大きく（ゆっくり）変更 (0.65 -> 0.82)
-            const ratio = halfCycle / 2.0;
-            const tauUp = 0.82 * ratio; 
-            const tauDown = 0.75 * ratio;
-
-            this.voice.setFrequencyAtTime(FREQ_AUTO_MIN, t);
-            this.voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, t, tauUp);
-            this.voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, t + halfCycle, tauDown);
+            // 規格通り正確な線形直線スイープ（直線増減）
+            this.voice.setFrequencyAtTime(FREQ_MIN, t);
+            this.voice.linearRampToFrequencyAtTime(FREQ_MAX, t + this.halfCycle);
+            this.voice.linearRampToFrequencyAtTime(FREQ_MIN, t + this.cycleLength);
             
             this.nextScheduleTime += this.cycleLength;
         }
@@ -416,6 +381,7 @@ class IntersectionAlarmVoice {
         modGain.connect(this.master);
         this.nodes.push(modGain);
         
+        // 規格仕様: 11.5Hz 断続モジュレーション
         const lfo = ctx.createOscillator();
         lfo.type = 'square';
         lfo.frequency.value = 11.5; 
@@ -425,13 +391,10 @@ class IntersectionAlarmVoice {
         
         lfo.connect(modGain.gain);
         dc.connect(modGain.gain);
-        
-        this.lfo = lfo;
-        this.dc = dc;
         this.nodes.push(lfo, dc);
         
+        // 規格仕様: 1200Hz ＆ 1550Hz 複合音
         const freqs = [1200, 1550]; 
-        this.oscs = [];
         freqs.forEach(f => {
             const osc = ctx.createOscillator();
             osc.type = 'square';
@@ -440,22 +403,20 @@ class IntersectionAlarmVoice {
             const bp = ctx.createBiquadFilter();
             bp.type = 'bandpass';
             bp.frequency.value = f;
-            bp.Q.value = 3.0;
+            bp.Q.value = 4.0;
             
             osc.connect(bp).connect(modGain);
-            this.oscs.push(osc);
             this.nodes.push(osc, bp);
+            osc.start();
         });
+        lfo.start();
+        dc.start();
     }
     
     start() {
         const now = this.ctx.currentTime;
         this.master.gain.setValueAtTime(0, now);
-        this.master.gain.linearRampToValueAtTime(0.45, now + 0.05);
-        
-        this.lfo.start(now);
-        this.dc.start(now);
-        this.oscs.forEach(o => o.start(now));
+        this.master.gain.linearRampToValueAtTime(0.5, now + 0.03);
     }
     
     stop() {
@@ -474,11 +435,11 @@ class IntersectionAlarmVoice {
                     n.disconnect();
                 } catch(e) {}
             });
-        }, 500);
+        }, 300);
     }
 }
 
-// UI ＆ Control
+// UI ＆ コントロール
 const btnAuto4 = document.getElementById('btn-auto-4');
 const btnAuto8 = document.getElementById('btn-auto-8');
 const btnManual = document.getElementById('btn-manual');
@@ -491,11 +452,11 @@ function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     
     masterCompressor = audioCtx.createDynamicsCompressor();
-    masterCompressor.threshold.value = -10;
-    masterCompressor.knee.value = 8;
-    masterCompressor.ratio.value = 10;
-    masterCompressor.attack.value = 0.01;
-    masterCompressor.release.value = 0.1;
+    masterCompressor.threshold.value = -6;
+    masterCompressor.knee.value = 6;
+    masterCompressor.ratio.value = 12;
+    masterCompressor.attack.value = 0.005;
+    masterCompressor.release.value = 0.08;
     
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
@@ -531,22 +492,20 @@ function startManual() {
     manualKeyActive = true;
     btnManual.classList.add('active');
 
-    // 最大同時発音数を 2 音に制限
     while (activeManualVoices.length >= 2) {
         const oldestVoice = activeManualVoices.shift();
-        oldestVoice.fadeAndDestroy(0.2);
+        oldestVoice.fadeAndDestroy(0.15);
     }
 
     const voice = new SirenVoice(audioCtx, masterCompressor);
     const now = audioCtx.currentTime;
     
-    // 120Hz（極低音）からスタート
-    voice.setFrequencyAtTime(FREQ_START, now);
+    // 手動仕様: 0Hzから立ち上がり、約1.3秒で1020Hzへ全開到達
+    voice.setFrequencyAtTime(FREQ_OFF, now);
     voice.outputGain.gain.setValueAtTime(0, now);
     voice.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
     
-    // ピッチ上昇スピードをゆっくり（0.75 -> 1.40）へ変更。重厚な溜めを再現。
-    voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, now, 1.40);
+    voice.setFrequencyTargetAtTime(FREQ_MAX, now, 0.45);
 
     activeManualVoices.push(voice);
     currentManualVoice = voice;
@@ -562,15 +521,15 @@ function releaseManual() {
         
         voice.cancelSchedules(now);
         
-        // 惰性下降（ゆっくり100Hz台へ向かって下がる）
-        voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, now, 1.10);
-        voice.outputGain.gain.setTargetAtTime(0, now, 1.2); 
+        // 手動余韻仕様: 離してから約3.5秒かけて0Hzまで減衰
+        voice.setFrequencyTargetAtTime(FREQ_OFF, now, 0.8);
+        voice.outputGain.gain.setTargetAtTime(0, now, 0.85); 
         
         setTimeout(() => {
             voice.destroy();
             const idx = activeManualVoices.indexOf(voice);
             if (idx > -1) activeManualVoices.splice(idx, 1);
-        }, 4500);
+        }, 3800);
         
         currentManualVoice = null;
     }
@@ -650,7 +609,7 @@ function drawVisualizer() {
     const w = rect.width;
     const h = rect.height;
 
-    ctxCanvas.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctxCanvas.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctxCanvas.fillRect(0, 0, w, h);
 
     if (!analyser) return;
@@ -660,7 +619,7 @@ function drawVisualizer() {
     analyser.getByteTimeDomainData(dataArray);
 
     ctxCanvas.lineWidth = 2;
-    ctxCanvas.strokeStyle = '#33ff66';
+    ctxCanvas.strokeStyle = '#00ff66';
     ctxCanvas.beginPath();
 
     const sliceWidth = w * 1.0 / bufferLength;
@@ -680,10 +639,10 @@ function drawVisualizer() {
     ctxCanvas.lineTo(w, h / 2);
     ctxCanvas.stroke();
     
-    const autoCnt = autoManager ? 1 : 0;
+    const autoStatus = autoManager ? `${autoManager.cycleLength}S` : 'OFF';
     const manCnt = activeManualVoices.length;
-    const almCnt = alarmVoice ? 1 : 0;
-    statusText.textContent = `SYS_STATUS: [AUTO:${autoCnt}] [MANUAL_VOICES:${manCnt}/2] [ALARM:${almCnt}]`;
+    const almStatus = alarmVoice ? 'ON' : 'OFF';
+    statusText.textContent = `SYS_STATUS: [AUTO: ${autoStatus}] [MANUAL_VOICES: ${manCnt}] [INTERSECTION: ${almStatus}]`;
 }
 
 ctxCanvas.fillStyle = '#000';
