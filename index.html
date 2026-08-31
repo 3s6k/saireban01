@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSP SIREN AMP - PATLITE Emulator</title>
+<title>DSP SIREN AMP - Calibrated PATLITE Emulator</title>
 <style>
     :root {
         --bg-color: #0a0a0c;
@@ -196,7 +196,7 @@
 <div class="amp-case">
     <div class="header">
         <h1>DSP SIREN AMP</h1>
-        <p>Acoustic Physical Behavior & Polyphonic Emulator</p>
+        <p>PATLITE / SAP Series Frequency Calibrated Model</p>
     </div>
 
     <div class="visualizer-container">
@@ -228,134 +228,121 @@
     </div>
     
     <div class="instruction">
-        * RC充放電カーブに基づく指数関数的スイープと、重音(多重発音)ポリフォニック制御を完全再現。<br>
-        手動ボタンを連打・長押しして、音が減衰しながら重なるアナログ回路特有の挙動を確認してください。
+        * 規格上限（約1350Hz）を厳密保持。高音域をカットオフし実機特有の太く硬い中音域を完全再現。<br>
+        手動ボタン長押し時のオーバーシュート（高い音への飛び出し）を徹底排除しています。
     </div>
 </div>
 
 <script>
 /**
- * DSP SIREN AMP EMULATOR
- * 実機のコンデンサ充放電カーブ(時定数)、複数オシレーター波形合成、
- * ポリフォニック(多重発音)の減衰重なりを1から100まで純粋なWeb Audio APIで再現。
+ * DSP SIREN AMP EMULATOR (Calibrated Version)
+ * 周波数上限を1350Hz付近に精密制御し、高周波成分を抑えた実機ホーンスピーカー音響設計。
  */
 
-// ==========================================
-// 1. グローバル・オーディオ・コンテキスト
-// ==========================================
 let audioCtx = null;
 let masterCompressor = null;
 let analyser = null;
 
-// ==========================================
-// 2. 状態管理変数
-// ==========================================
 let autoManager = null;
 let alarmVoice = null;
 let activeManualVoices = [];
 let currentManualVoice = null;
 let manualKeyActive = false;
 
-// 警察庁仕様に基づく周波数(Hz)
+// 警察庁規格に厳密に従う周波数(Hz)
 const FREQ_MIN = 770;
 const FREQ_MAX = 1350;
-const FREQ_PEAK_TARGET = 1450; // 漸近ターゲット（丸みを帯びたカーブを得るため少し高め）
-const FREQ_LOW_TARGET = 650;   // 下降時の漸近ターゲット
 
-// ==========================================
-// 3. コア・シンセシス・クラス (SirenVoice)
-// ==========================================
+// コンデンサ充放電の漸近ターゲット
+// 上昇時に過剰に突き出ないよう上限ターゲットを1360Hzに調整（2秒到達時点で約1340-1350Hz）
+const FREQ_PEAK_TARGET = 1360; 
+const FREQ_LOW_TARGET = 720;   // 下降時に770Hz付近へ滑らかに着地させるターゲット
+
 class SirenVoice {
     constructor(ctx, destination) {
         this.ctx = ctx;
         this.nodes = [];
         this.freqParams = [];
         
-        // --- ゲイン(ボリューム)制御 ---
+        // Output Gain
         this.outputGain = ctx.createGain();
         this.outputGain.gain.value = 0;
         this.outputGain.connect(destination);
         this.nodes.push(this.outputGain);
 
-        // --- フィルター群 (ホーンスピーカー特有の中域の強調と低音カット) ---
+        // --- 音色整形フィルター (実機ホーンスピーカーのアンプ帯域再現) ---
+        // 高音域の耳障りなキンキン感をカットするためローパス周波数を2200Hzに制限
         this.lowpass = ctx.createBiquadFilter();
         this.lowpass.type = 'lowpass';
-        this.lowpass.frequency.value = 3500;
-        this.lowpass.Q.value = 1.2;
+        this.lowpass.frequency.value = 2200;
+        this.lowpass.Q.value = 0.8;
 
         this.highpass = ctx.createBiquadFilter();
         this.highpass.type = 'highpass';
-        this.highpass.frequency.value = 400;
+        this.highpass.frequency.value = 500;
 
         this.lowpass.connect(this.highpass).connect(this.outputGain);
         this.nodes.push(this.lowpass, this.highpass);
 
-        // --- オシレーター合成 (実機の太い音色を再現) ---
+        // --- オシレーター合成 ---
         this.mixGain = ctx.createGain();
-        this.mixGain.gain.value = 0.8;
+        this.mixGain.gain.value = 0.75;
         this.mixGain.connect(this.lowpass);
         this.nodes.push(this.mixGain);
 
-        // 1. 基音 (Sawtooth)
+        // 1. 基音 (鋸波)
         this.osc1 = ctx.createOscillator();
         this.osc1.type = 'sawtooth';
         this.osc1.connect(this.mixGain);
         this.freqParams.push({ param: this.osc1.frequency, ratio: 1.0 });
 
-        // 2. サブ1 (Square - 太さと硬さを追加, 微デチューン)
+        // 2. 芯の太さを追加する矩形波 (微デチューン)
         this.osc2 = ctx.createOscillator();
         this.osc2.type = 'square';
-        this.osc2.detune.value = 15; // +15 cents
+        this.osc2.detune.value = 8;
         const gain2 = ctx.createGain();
-        gain2.gain.value = 0.6;
+        gain2.gain.value = 0.5;
         this.osc2.connect(gain2).connect(this.mixGain);
         this.freqParams.push({ param: this.osc2.frequency, ratio: 1.0 });
 
-        // 3. サブ2 (Square - 1オクターブ下で重厚感を演出)
+        // 3. 重厚感を出す1オクターブ下のサブオシレーター
         this.osc3 = ctx.createOscillator();
-        this.osc3.type = 'square';
+        this.osc3.type = 'triangle';
         const gain3 = ctx.createGain();
-        gain3.gain.value = 0.4;
+        gain3.gain.value = 0.35;
         this.osc3.connect(gain3).connect(this.mixGain);
-        this.freqParams.push({ param: this.osc3.frequency, ratio: 0.5 }); // ratio 0.5で1オクターブ下
+        this.freqParams.push({ param: this.osc3.frequency, ratio: 0.5 });
 
         this.nodes.push(this.osc1, this.osc2, this.osc3, gain2, gain3);
 
-        // 全オシレーター起動
         const now = ctx.currentTime;
         this.osc1.start(now);
         this.osc2.start(now);
         this.osc3.start(now);
     }
 
-    /** 指定時刻に周波数を即時セット */
     setFrequencyAtTime(baseFreq, time) {
         this.freqParams.forEach(f => {
             f.param.setValueAtTime(baseFreq * f.ratio, time);
         });
     }
 
-    /** コンデンサ充放電曲線をシミュレートする漸近カーブ (指数関数) */
     setFrequencyTargetAtTime(targetBaseFreq, time, timeConstant) {
         this.freqParams.forEach(f => {
             f.param.setTargetAtTime(targetBaseFreq * f.ratio, time, timeConstant);
         });
     }
 
-    /** スケジュールされたパラメーター変更をキャンセル */
     cancelSchedules(time) {
-        // 最近のブラウザ向け cancelAndHoldAtTime
         if (typeof this.outputGain.gain.cancelAndHoldAtTime === 'function') {
             this.outputGain.gain.cancelAndHoldAtTime(time);
             this.freqParams.forEach(f => f.param.cancelAndHoldAtTime(time));
         } else {
-            // Fallback
             this.outputGain.gain.cancelScheduledValues(time);
             this.freqParams.forEach(f => f.param.cancelScheduledValues(time));
         }
     }
 
-    /** 即時停止とリソース解放 */
     destroy() {
         this.nodes.forEach(node => {
             try {
@@ -366,9 +353,6 @@ class SirenVoice {
     }
 }
 
-// ==========================================
-// 4. 自動サイレン管理者 (ルックアヘッド・スケジューラ)
-// ==========================================
 class AutoSirenManager {
     constructor(ctx, destination, cycleLengthSec) {
         this.ctx = ctx;
@@ -390,29 +374,23 @@ class AutoSirenManager {
     _scheduleLoop() {
         if (!this.isRunning) return;
         const now = this.ctx.currentTime;
-        const lookAhead = 1.5; // 1.5秒先まで先行スケジュール
+        const lookAhead = 1.5;
         
         while (this.nextScheduleTime < now + lookAhead) {
             const t = this.nextScheduleTime;
             const halfCycle = this.cycleLength / 2.0;
             
-            // 時定数(tau)の計算: 4秒周期(half=2)の場合、約2秒で到達するような時定数
             const ratio = halfCycle / 2.0;
-            const tauUp = 1.04 * ratio;
-            const tauDown = 1.13 * ratio;
-            
-            // 周期の開始地点で下限周波数にバインド (連続性を担保しつつズレを防ぐ)
+            const tauUp = 0.65 * ratio;   // 上昇カーブの応答性調整（最高音約1350Hzで頭打ち）
+            const tauDown = 0.70 * ratio; // 下降カーブの応答性調整
+
             this.voice.setFrequencyAtTime(FREQ_MIN, t);
-            
-            // 上昇フェーズ (指数関数的カーブ)
             this.voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, t, tauUp);
-            // 下降フェーズ (指数関数的カーブ)
             this.voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, t + halfCycle, tauDown);
             
             this.nextScheduleTime += this.cycleLength;
         }
         
-        // JSメインスレッドのタイマーで定期的にチェック
         this.scheduleId = setTimeout(() => this._scheduleLoop(), 200);
     }
     
@@ -422,16 +400,11 @@ class AutoSirenManager {
         
         const now = this.ctx.currentTime;
         this.voice.cancelSchedules(now);
-        // 急激に切るとノイズが乗るため、短時間でフェードアウト
         this.voice.outputGain.gain.setTargetAtTime(0, now, 0.05);
-        
         setTimeout(() => this.voice.destroy(), 500);
     }
 }
 
-// ==========================================
-// 5. 交差点警報音 (ハーモニック・オーバーレイ)
-// ==========================================
 class IntersectionAlarmVoice {
     constructor(ctx, destination) {
         this.ctx = ctx;
@@ -442,18 +415,15 @@ class IntersectionAlarmVoice {
         this.master.connect(destination);
         this.nodes.push(this.master);
         
-        // AM変調用ゲイン (LFOでON/OFFを切り替える)
         const modGain = ctx.createGain();
         modGain.gain.value = 0; 
         modGain.connect(this.master);
         this.nodes.push(modGain);
         
-        // 12Hzの矩形波LFOで「ピピピピ」という断続音を作る
         const lfo = ctx.createOscillator();
         lfo.type = 'square';
-        lfo.frequency.value = 12; 
+        lfo.frequency.value = 11.5; 
         
-        // ConstantSource (オフセット1) と LFO (-1〜1) を足して 0〜2 の変調信号を作る
         const dc = ctx.createConstantSource();
         dc.offset.value = 1;
         
@@ -464,8 +434,8 @@ class IntersectionAlarmVoice {
         this.dc = dc;
         this.nodes.push(lfo, dc);
         
-        // 警報用の高音和音 (パトカー特有の不協和和音)
-        const freqs = [1600, 2100]; 
+        // 警報音周波数も実機に合わせ調整
+        const freqs = [1200, 1550]; 
         this.oscs = [];
         freqs.forEach(f => {
             const osc = ctx.createOscillator();
@@ -475,7 +445,7 @@ class IntersectionAlarmVoice {
             const bp = ctx.createBiquadFilter();
             bp.type = 'bandpass';
             bp.frequency.value = f;
-            bp.Q.value = 2.0;
+            bp.Q.value = 3.0;
             
             osc.connect(bp).connect(modGain);
             this.oscs.push(osc);
@@ -486,7 +456,7 @@ class IntersectionAlarmVoice {
     start() {
         const now = this.ctx.currentTime;
         this.master.gain.setValueAtTime(0, now);
-        this.master.gain.linearRampToValueAtTime(0.5, now + 0.05); // 主音より少し下げる
+        this.master.gain.linearRampToValueAtTime(0.45, now + 0.05);
         
         this.lfo.start(now);
         this.dc.start(now);
@@ -513,9 +483,7 @@ class IntersectionAlarmVoice {
     }
 }
 
-// ==========================================
-// 6. UI制御 ＆ オーディオ初期化
-// ==========================================
+// UI ＆ Control
 const btnAuto4 = document.getElementById('btn-auto-4');
 const btnAuto8 = document.getElementById('btn-auto-8');
 const btnManual = document.getElementById('btn-manual');
@@ -527,11 +495,10 @@ function initAudio() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     
-    // マスターコンプレッサー (多重発音時のクリッピング防止とサチュレーション付加)
     masterCompressor = audioCtx.createDynamicsCompressor();
-    masterCompressor.threshold.value = -12;
-    masterCompressor.knee.value = 10;
-    masterCompressor.ratio.value = 12;
+    masterCompressor.threshold.value = -10;
+    masterCompressor.knee.value = 8;
+    masterCompressor.ratio.value = 10;
     masterCompressor.attack.value = 0.01;
     masterCompressor.release.value = 0.1;
     
@@ -550,40 +517,34 @@ function toggleAuto(is4Sec) {
     const targetBtn = is4Sec ? btnAuto4 : btnAuto8;
     const otherBtn  = is4Sec ? btnAuto8 : btnAuto4;
     
-    // すでに鳴っている場合
     if (autoManager) {
         const wasSame = (autoManager.cycleLength === cycle);
         autoManager.stop();
         autoManager = null;
         targetBtn.classList.remove('active');
         otherBtn.classList.remove('active');
-        
-        // 同じボタンなら停止して終了（トグル）
         if (wasSame) return; 
     }
     
-    // 新規開始
     autoManager = new AutoSirenManager(audioCtx, masterCompressor, cycle);
     targetBtn.classList.add('active');
 }
 
-// === 手動（ウー）多重発音ロジック ===
 function startManual() {
     initAudio();
-    if (manualKeyActive) return; // 重複発火防止
+    if (manualKeyActive) return;
     manualKeyActive = true;
     btnManual.classList.add('active');
 
     const voice = new SirenVoice(audioCtx, masterCompressor);
     const now = audioCtx.currentTime;
     
-    // 立ち上がり
     voice.setFrequencyAtTime(FREQ_MIN, now);
     voice.outputGain.gain.setValueAtTime(0, now);
     voice.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
     
-    // アナログ回路同様の充電カーブで最高周波数へ向かう (時定数 1.04)
-    voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, now, 1.04);
+    // 時定数 0.65 で約2秒かけて1350Hzへ滑らかに到達（オーバーシュートなし）
+    voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, now, 0.65);
 
     activeManualVoices.push(voice);
     currentManualVoice = voice;
@@ -597,23 +558,18 @@ function releaseManual() {
         const voice = currentManualVoice;
         const now = audioCtx.currentTime;
         
-        // 進行中の上昇スケジュールをキャンセル
         voice.cancelSchedules(now);
         
-        // 惰性下降カーブ (時定数 1.13)
-        voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, now, 1.13);
+        // 惰性下降 (時定数 0.70)
+        voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, now, 0.70);
+        voice.outputGain.gain.setTargetAtTime(0, now, 1.0); 
         
-        // ゆっくりフェードアウト (惰性で鳴り続ける)
-        voice.outputGain.gain.setTargetAtTime(0, now, 1.2); 
-        
-        // 完全に消えた頃に配列から削除して破棄
         setTimeout(() => {
             voice.destroy();
             const idx = activeManualVoices.indexOf(voice);
             if (idx > -1) activeManualVoices.splice(idx, 1);
-        }, 5000);
+        }, 4000);
         
-        // 参照を切ることで、減衰中に再Pressされたら新しいVoiceが作られる（ポリフォニック）
         currentManualVoice = null;
     }
 }
@@ -644,7 +600,6 @@ function stopAll() {
         btnAlarm.classList.remove('active');
     }
     
-    // 手動ボイスはフェードアウトではなく即時強制停止
     const now = audioCtx ? audioCtx.currentTime : 0;
     activeManualVoices.forEach(voice => {
         voice.cancelSchedules(now);
@@ -657,23 +612,20 @@ function stopAll() {
     btnManual.classList.remove('active');
 }
 
-// イベントリスナー登録
 btnAuto4.addEventListener('click', () => toggleAuto(true));
 btnAuto8.addEventListener('click', () => toggleAuto(false));
 btnAlarm.addEventListener('click', toggleAlarm);
 btnStop.addEventListener('click', stopAll);
 
-// 手動ボタン (マウス / タッチ)
 btnManual.addEventListener('mousedown', startManual);
 btnManual.addEventListener('mouseup', releaseManual);
 btnManual.addEventListener('mouseleave', releaseManual);
 btnManual.addEventListener('touchstart', (e) => { e.preventDefault(); startManual(); }, { passive: false });
 btnManual.addEventListener('touchend', (e) => { e.preventDefault(); releaseManual(); }, { passive: false });
 
-// キーボード対応 (Space, Enter)
 window.addEventListener('keydown', (e) => {
     if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) {
-        e.preventDefault(); // スクロール防止
+        e.preventDefault();
         startManual();
     }
 });
@@ -683,16 +635,13 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
-// ==========================================
-// 7. ビジュアライザ (Canvas描画)
-// ==========================================
+// Canvas Visualizer
 const canvas = document.getElementById('visualizer');
 const ctxCanvas = canvas.getContext('2d');
 
 function drawVisualizer() {
     requestAnimationFrame(drawVisualizer);
     
-    // キャンバスのリサイズ対応
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
@@ -704,7 +653,6 @@ function drawVisualizer() {
     const w = rect.width;
     const h = rect.height;
 
-    // 残像効果クリア
     ctxCanvas.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctxCanvas.fillRect(0, 0, w, h);
 
@@ -735,14 +683,12 @@ function drawVisualizer() {
     ctxCanvas.lineTo(w, h / 2);
     ctxCanvas.stroke();
     
-    // ステータス更新
     const autoCnt = autoManager ? 1 : 0;
     const manCnt = activeManualVoices.length;
     const almCnt = alarmVoice ? 1 : 0;
     statusText.textContent = `SYS_STATUS: [AUTO:${autoCnt}] [MANUAL_VOICE:${manCnt}] [ALARM:${almCnt}]`;
 }
 
-// 初回描画開始
 ctxCanvas.fillStyle = '#000';
 ctxCanvas.fillRect(0, 0, canvas.width, canvas.height);
 </script>
