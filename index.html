@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSP SIREN AMP - 200Hz Low-Pitch Calibrated Model</title>
+<title>DSP SIREN AMP - Heavy Low-Pitch & Slow-Sweep Model</title>
 <style>
     :root {
         --bg-color: #0a0a0c;
@@ -193,7 +193,7 @@
 <div class="amp-case">
     <div class="header">
         <h1>DSP SIREN AMP</h1>
-        <p>PATLITE / SAP Series Extra-Low Pitch (200Hz Start) Calibrated Model</p>
+        <p>PATLITE / SAP Heavy Sub-Low Pitch (120Hz Start) Calibrated Model</p>
     </div>
 
     <div class="visualizer-container">
@@ -225,14 +225,14 @@
     </div>
     
     <div class="instruction">
-        ・最低周波数を約200Hzに調整。超低音域からの重厚な立ち上がりを再現。<br>
-        ・ボイス上限2音制限とフィルタ調整により、低音域でも音が潰れずクリアに再生。
+        ・最低周波数を約120Hzまで引き下げ、出だしに重厚な低音ベースを補強。<br>
+        ・手動ボタン（ウー）および自動周期の上昇スピードをマイルドに調整。
     </div>
 </div>
 
 <script>
 /**
- * DSP SIREN AMP EMULATOR (200Hz Low-Pitch Version)
+ * DSP SIREN AMP EMULATOR (120Hz Ultra-Low Pitch & Slow-Sweep Version)
  */
 
 let audioCtx = null;
@@ -245,11 +245,11 @@ let activeManualVoices = [];
 let currentManualVoice = null;
 let manualKeyActive = false;
 
-// 最低周波数を約200Hzまで引き下げた周波数設定
-const FREQ_START = 200;      // 手動（ウー）押し始めの超低音（200Hz）
-const FREQ_AUTO_MIN = 600;   // 自動サイレン時の下限
-const FREQ_PEAK_TARGET = 1360; // 上限ターゲット（最高約1350Hz）
-const FREQ_LOW_TARGET = 180;   // 減衰時の漸近ターゲット（200Hz付近に滑らかに着地）
+// 最低周波数を約120Hzまで拡大＆上昇カーブをゆっくりに調整
+const FREQ_START = 120;        // 手動（ウー）押し始めの極低音（120Hz）
+const FREQ_AUTO_MIN = 450;     // 自動サイレン時の立ち上がり開始周波数
+const FREQ_PEAK_TARGET = 1350; // 上限ターゲット（約1350Hz）
+const FREQ_LOW_TARGET = 100;   // 減衰時の漸近ターゲット（120Hz付近へ滑らかに着地）
 
 class SirenVoice {
     constructor(ctx, destination) {
@@ -263,22 +263,22 @@ class SirenVoice {
         this.outputGain.connect(destination);
         this.nodes.push(this.outputGain);
 
-        // 200Hzの重低音を通すようハイパスフィルタのカットオフ周波数を下げて調整
+        // 120Hzの重低音域をしっかり鳴らすためハイパス周波数を80Hzまで引き下げ
         this.lowpass = ctx.createBiquadFilter();
         this.lowpass.type = 'lowpass';
-        this.lowpass.frequency.value = 2200;
+        this.lowpass.frequency.value = 2000;
         this.lowpass.Q.value = 0.8;
 
         this.highpass = ctx.createBiquadFilter();
         this.highpass.type = 'highpass';
-        this.highpass.frequency.value = 150; // 200Hz以下の不要な超低域ノイズのみカット
+        this.highpass.frequency.value = 80;
 
         this.lowpass.connect(this.highpass).connect(this.outputGain);
         this.nodes.push(this.lowpass, this.highpass);
 
         // 波形合成
         this.mixGain = ctx.createGain();
-        this.mixGain.gain.value = 0.75;
+        this.mixGain.gain.value = 0.8;
         this.mixGain.connect(this.lowpass);
         this.nodes.push(this.mixGain);
 
@@ -291,19 +291,19 @@ class SirenVoice {
         // 2. 芯を太くする矩形波
         this.osc2 = ctx.createOscillator();
         this.osc2.type = 'square';
-        this.osc2.detune.value = 6;
+        this.osc2.detune.value = 4;
         const gain2 = ctx.createGain();
-        gain2.gain.value = 0.5;
+        gain2.gain.value = 0.45;
         this.osc2.connect(gain2).connect(this.mixGain);
         this.freqParams.push({ param: this.osc2.frequency, ratio: 1.0 });
 
-        // 3. 低音域の厚みを補強するサブ（三角波）
+        // 3. 出だしの低音（120Hz付近）に圧倒的な厚みを出すサブオシレーター（正弦波）
         this.osc3 = ctx.createOscillator();
-        this.osc3.type = 'triangle';
+        this.osc3.type = 'sine';
         const gain3 = ctx.createGain();
-        gain3.gain.value = 0.4;
+        gain3.gain.value = 0.6; // 出だしの重低音感を強化
         this.osc3.connect(gain3).connect(this.mixGain);
-        this.freqParams.push({ param: this.osc3.frequency, ratio: 0.5 });
+        this.freqParams.push({ param: this.osc3.frequency, ratio: 0.5 }); // 1オクターブ下を補強
 
         this.nodes.push(this.osc1, this.osc2, this.osc3, gain2, gain3);
 
@@ -378,9 +378,11 @@ class AutoSirenManager {
         while (this.nextScheduleTime < now + lookAhead) {
             const t = this.nextScheduleTime;
             const halfCycle = this.cycleLength / 2.0;
+            
+            // 上昇時のタイムコンスタントを少し大きく（ゆっくり）変更 (0.65 -> 0.82)
             const ratio = halfCycle / 2.0;
-            const tauUp = 0.65 * ratio;
-            const tauDown = 0.70 * ratio;
+            const tauUp = 0.82 * ratio; 
+            const tauDown = 0.75 * ratio;
 
             this.voice.setFrequencyAtTime(FREQ_AUTO_MIN, t);
             this.voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, t, tauUp);
@@ -538,13 +540,13 @@ function startManual() {
     const voice = new SirenVoice(audioCtx, masterCompressor);
     const now = audioCtx.currentTime;
     
-    // 超低音（200Hz）からスタート
+    // 120Hz（極低音）からスタート
     voice.setFrequencyAtTime(FREQ_START, now);
     voice.outputGain.gain.setValueAtTime(0, now);
     voice.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
     
-    // 200Hzから最高点（1360Hzターゲット）へ充電カーブで急上昇（時定数 0.75）
-    voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, now, 0.75);
+    // ピッチ上昇スピードをゆっくり（0.75 -> 1.40）へ変更。重厚な溜めを再現。
+    voice.setFrequencyTargetAtTime(FREQ_PEAK_TARGET, now, 1.40);
 
     activeManualVoices.push(voice);
     currentManualVoice = voice;
@@ -560,15 +562,15 @@ function releaseManual() {
         
         voice.cancelSchedules(now);
         
-        // 惰性下降 (超低音に向かって減衰)
-        voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, now, 0.80);
-        voice.outputGain.gain.setTargetAtTime(0, now, 0.9); 
+        // 惰性下降（ゆっくり100Hz台へ向かって下がる）
+        voice.setFrequencyTargetAtTime(FREQ_LOW_TARGET, now, 1.10);
+        voice.outputGain.gain.setTargetAtTime(0, now, 1.2); 
         
         setTimeout(() => {
             voice.destroy();
             const idx = activeManualVoices.indexOf(voice);
             if (idx > -1) activeManualVoices.splice(idx, 1);
-        }, 3500);
+        }, 4500);
         
         currentManualVoice = null;
     }
