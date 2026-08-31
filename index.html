@@ -1,653 +1,823 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PATLITE SAP Series Siren Amp Emulator</title>
-<style>
-    :root {
-        --bg-color: #0d0d11;
-        --panel-bg: #1c1c24;
-        --text-main: #e0e0e0;
-        --text-muted: #777;
-        --border-main: #333344;
-        --accent-red: #ff3333;
-        --accent-red-glow: rgba(255, 51, 51, 0.5);
-        --accent-blue: #3399ff;
-        --accent-blue-glow: rgba(51, 153, 255, 0.4);
-        --accent-yellow: #ffbb33;
-        --accent-yellow-glow: rgba(255, 187, 51, 0.4);
-        --accent-green: #00ff66;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PATLITE SAP-Series Siren Amp Emulator (Precision DSP Model)</title>
+    <style>
+        :root {
+            --panel-bg: #141519;
+            --panel-border: #2a2c36;
+            --card-bg: #1d1f27;
+            --text-main: #f0f2f8;
+            --text-sub: #828696;
+            --accent-red: #ff3b30;
+            --accent-red-glow: rgba(255, 59, 48, 0.4);
+            --accent-blue: #0a84ff;
+            --accent-blue-glow: rgba(10, 132, 255, 0.4);
+            --accent-amber: #ff9f0a;
+            --accent-amber-glow: rgba(255, 159, 10, 0.4);
+            --accent-green: #30d158;
+        }
 
-    body {
-        margin: 0;
-        padding: 20px;
-        background-color: var(--bg-color);
-        color: var(--text-main);
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-        box-sizing: border-box;
-    }
+        body {
+            margin: 0;
+            padding: 24px 16px;
+            background-color: #08090b;
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
 
-    .amp-case {
-        background: var(--panel-bg);
-        border: 2px solid var(--border-main);
-        border-radius: 12px;
-        padding: 25px;
-        width: 100%;
-        max-width: 800px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.9), inset 0 1px 2px rgba(255,255,255,0.1);
-    }
+        .container {
+            width: 100%;
+            max-width: 840px;
+        }
 
-    .header {
-        text-align: center;
-        margin-bottom: 20px;
-        border-bottom: 1px solid var(--border-main);
-        padding-bottom: 15px;
-    }
+        .amp-panel {
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
 
-    .header h1 {
-        margin: 0;
-        font-size: 22px;
-        letter-spacing: 2px;
-        color: #eee;
-    }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
 
-    .header p {
-        margin: 6px 0 0 0;
-        font-size: 12px;
-        color: var(--text-muted);
-        letter-spacing: 1px;
-    }
+        .header-title h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: #ffffff;
+        }
 
-    .visualizer-container {
-        background: #000;
-        border: 2px solid #222233;
-        border-radius: 8px;
-        margin-bottom: 25px;
-        padding: 2px;
-        position: relative;
-        overflow: hidden;
-    }
+        .header-title p {
+            margin: 4px 0 0 0;
+            font-size: 11px;
+            color: var(--text-sub);
+        }
 
-    canvas {
-        width: 100%;
-        height: 150px;
-        display: block;
-        border-radius: 4px;
-    }
+        .status-badge {
+            font-family: monospace;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #0b0c0e;
+            border: 1px solid #1f212b;
+            color: var(--accent-green);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-    .status-bar {
-        position: absolute;
-        bottom: 8px;
-        left: 10px;
-        font-family: monospace;
-        font-size: 11px;
-        color: var(--accent-green);
-        text-shadow: 0 0 4px var(--accent-green);
-        pointer-events: none;
-    }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
 
-    .controls {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 15px;
-    }
+        .visualizer-card {
+            background: #000000;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 24px;
+        }
 
-    .control-group {
-        background: #121218;
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid #282836;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
+        canvas {
+            width: 100%;
+            height: 140px;
+            display: block;
+            border-radius: 4px;
+        }
 
-    .control-group h2 {
-        margin: 0;
-        font-size: 12px;
-        color: #889;
-        text-align: center;
-        letter-spacing: 1px;
-    }
+        .telemetry {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-sub);
+        }
 
-    button {
-        background: #252532;
-        color: #ccc;
-        border: 1.5px solid #444455;
-        border-radius: 6px;
-        padding: 14px 8px;
-        font-size: 13px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.1s ease;
-        outline: none;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-    }
+        .telemetry span {
+            color: var(--text-main);
+            font-weight: bold;
+        }
 
-    button:active {
-        transform: translateY(1px);
-    }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
 
-    .btn-auto.active {
-        border-color: var(--accent-blue);
-        color: var(--accent-blue);
-        background: #182838;
-        box-shadow: 0 0 12px var(--accent-blue-glow);
-    }
+        .control-group {
+            background: var(--card-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
 
-    .btn-manual {
-        border-color: #773333;
-        color: #ffaaaa;
-        height: 100%;
-        min-height: 55px;
-    }
-    .btn-manual.active {
-        border-color: var(--accent-red);
-        color: var(--accent-red);
-        background: #381818;
-        box-shadow: 0 0 15px var(--accent-red-glow);
-    }
+        .control-group h2 {
+            margin: 0;
+            font-size: 11px;
+            color: var(--text-sub);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-align: center;
+        }
 
-    .btn-alarm.active {
-        border-color: var(--accent-yellow);
-        color: var(--accent-yellow);
-        background: #382818;
-        box-shadow: 0 0 12px var(--accent-yellow-glow);
-    }
+        .btn {
+            background: #252834;
+            color: var(--text-main);
+            border: 1px solid #383c4e;
+            border-radius: 6px;
+            padding: 14px 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            outline: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    .btn-stop {
-        background: #381818;
-        border-color: #662222;
-        color: #ffaaaa;
-    }
-    .btn-stop:active {
-        background: var(--accent-red);
-        color: #fff;
-    }
-</style>
+        .btn:hover {
+            background: #2f3342;
+            border-color: #4a4f66;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn small {
+            font-size: 10px;
+            font-weight: normal;
+            color: var(--text-sub);
+        }
+
+        .btn-auto.active {
+            background: #0f2b48;
+            border-color: var(--accent-blue);
+            color: #8ac0ff;
+            box-shadow: 0 0 12px var(--accent-blue-glow);
+        }
+
+        .btn-manual {
+            height: 100%;
+            background: #3d1a1a;
+            border-color: #662b2b;
+            color: #ffb3b3;
+        }
+
+        .btn-manual:hover {
+            background: #4d2222;
+        }
+
+        .btn-manual.active {
+            background: #661818;
+            border-color: var(--accent-red);
+            color: #ffffff;
+            box-shadow: 0 0 16px var(--accent-red-glow);
+        }
+
+        .btn-alarm.active {
+            background: #482f0f;
+            border-color: var(--accent-amber);
+            color: #ffd18a;
+            box-shadow: 0 0 12px var(--accent-amber-glow);
+        }
+
+        .btn-stop {
+            background: #281818;
+            border-color: #522828;
+            color: #ff9999;
+        }
+
+        .btn-stop:hover {
+            background: #3d2020;
+            color: #ffffff;
+        }
+
+        .footer-note {
+            margin-top: 16px;
+            font-size: 11px;
+            color: var(--text-sub);
+            text-align: center;
+            line-height: 1.5;
+        }
+    </style>
 </head>
 <body>
 
-<div class="amp-case">
-    <div class="header">
-        <h1>PATLITE SAP SERIES EMULATOR</h1>
-        <p>Standard Spec Calibrated Model (770Hz - 1020Hz)</p>
+<div class="container">
+    <div class="amp-panel">
+        <div class="header">
+            <div class="header-title">
+                <h1>ELECTRONIC SIREN AMPLIFIER</h1>
+                <p>PATLITE SAP-Series Precision Time-Domain Calibrated Model</p>
+            </div>
+            <div class="status-badge">
+                <div id="status-dot" class="status-dot"></div>
+                <span id="status-text">STANDBY</span>
+            </div>
+        </div>
+
+        <div class="visualizer-card">
+            <canvas id="canvas"></canvas>
+            <div class="telemetry">
+                <div>FREQ: <span id="telemetry-freq">0.0 Hz</span></div>
+                <div>STATE: <span id="telemetry-mode">OFF</span></div>
+                <div>AMP OUTPUT: <span id="telemetry-vol">0 %</span></div>
+            </div>
+        </div>
+
+        <div class="controls-grid">
+            <div class="control-group">
+                <h2>自動周期 (AUTO)</h2>
+                <button id="btn-auto-4" class="btn btn-auto">
+                    4秒周期 (巡回)
+                    <small>上昇2.0s / 下降2.0s (770↔1350Hz)</small>
+                </button>
+                <button id="btn-auto-8" class="btn btn-auto">
+                    8秒周期 (高速)
+                    <small>上昇4.0s / 下降4.0s (770↔1350Hz)</small>
+                </button>
+            </div>
+
+            <div class="control-group">
+                <h2>手動押下 (MANUAL)</h2>
+                <button id="btn-manual" class="btn btn-manual">
+                    手動サイレン (ウー)
+                    <small>長押し: 上昇1.3s / 離す: 余韻3.5s</small>
+                </button>
+            </div>
+
+            <div class="control-group">
+                <h2>交差点警報 (OVERLAY)</h2>
+                <button id="btn-alarm" class="btn btn-alarm">
+                    交差点警報
+                    <small>1200Hz+1550Hz (11.5Hz変調)</small>
+                </button>
+            </div>
+
+            <div class="control-group">
+                <h2>マスター制御</h2>
+                <button id="btn-stop" class="btn btn-stop">
+                    全音停止 (STOP)
+                    <small>慣性降下即時キャンセル</small>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="visualizer-container">
-        <canvas id="visualizer"></canvas>
-        <div id="status-text" class="status-bar">SYS_READY: STANDBY</div>
-    </div>
-
-    <div class="controls">
-        <div class="control-group">
-            <h2>AUTO CYCLE</h2>
-            <button id="btn-auto-4" class="btn-auto">4 SEC (PATROL)</button>
-            <button id="btn-auto-8" class="btn-auto">8 SEC (HIGHWAY)</button>
-        </div>
-
-        <div class="control-group">
-            <h2>MANUAL SWEEP</h2>
-            <button id="btn-manual" class="btn-manual">MANUAL (WOO)<br><small>[Hold SPACE]</small></button>
-        </div>
-
-        <div class="control-group">
-            <h2>OVERLAY ALARM</h2>
-            <button id="btn-alarm" class="btn-alarm">INTERSECTION</button>
-        </div>
-
-        <div class="control-group">
-            <h2>MASTER CONTROL</h2>
-            <button id="btn-stop" class="btn-stop">ALL STOP</button>
-        </div>
+    <div class="footer-note">
+        ※4秒/8秒完全直線スイープ、手動約1.3秒全開上昇、離音時約3.5秒指数慣性降下パラメータ調整済みモデル。
     </div>
 </div>
 
 <script>
 /**
- * PATLITE SAP Series Siren Amp Spec Implementation
- * - Base Frequency: 770 Hz - 1020 Hz
- * - 4 Sec Cycle: Up 2.0s / Down 2.0s
- * - 8 Sec Cycle: Up 4.0s / Down 4.0s
- * - Manual Woo: Start 0 Hz -> 1020 Hz (1.3s) -> Decay 3.5s
- * - Intersection: 1200 Hz & 1550 Hz Dual Tone (11.5 Hz Modulation)
+ * 規格厳密準拠・DSPサイレンエミュレータ回路
  */
 
+// 規格定数
+const FREQ_MIN = 770.0;   // 定常最低周波数 (Hz)
+const FREQ_MAX = 1350.0;  // 定常最高周波数 (Hz)
+const FREQ_OFF = 0.01;    // 消音時ベース周波数 (Hz)
+
 let audioCtx = null;
-let masterCompressor = null;
+let masterGain = null;
+let speakerFilterBank = null;
 let analyser = null;
 
-let autoManager = null;
-let alarmVoice = null;
-let activeManualVoices = [];
-let currentManualVoice = null;
-let manualKeyActive = false;
+let mainSirenNode = null;
+let intersectionAlarmNode = null;
 
-// 規格に基づく周波数定数
-const FREQ_MIN = 770;      // 定常下限周波数
-const FREQ_MAX = 1020;     // 定常上限周波数
-const FREQ_OFF = 0.01;     // 完全消音時（0Hz近似）
+let isAudioInitialized = false;
 
-class SirenVoice {
+/**
+ * 車載ホーンスピーカー（ドライバーユニット）伝達関数
+ */
+function createSpeakerEmulationFilter(ctx) {
+    const input = ctx.createGain();
+    const output = ctx.createGain();
+
+    const hpf = ctx.createBiquadFilter();
+    hpf.type = 'highpass';
+    hpf.frequency.value = 400;
+    hpf.Q.value = 0.7;
+
+    const bpf = ctx.createBiquadFilter();
+    bpf.type = 'peaking';
+    bpf.frequency.value = 1800;
+    bpf.gain.value = 6.0; 
+    bpf.Q.value = 1.2;
+
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = 4500;
+    lpf.Q.value = 0.7;
+
+    input.connect(hpf);
+    hpf.connect(bpf);
+    bpf.connect(lpf);
+    lpf.connect(output);
+
+    return { input, output };
+}
+
+function initAudioEngine() {
+    if (isAudioInitialized) return;
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AudioContextClass();
+
+    const limiter = audioCtx.createDynamicsCompressor();
+    limiter.threshold.value = -2.0;
+    limiter.knee.value = 3.0;
+    limiter.ratio.value = 20.0;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.05;
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+
+    speakerFilterBank = createSpeakerEmulationFilter(audioCtx);
+
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1.0;
+
+    speakerFilterBank.output.connect(limiter);
+    limiter.connect(masterGain);
+    masterGain.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    isAudioInitialized = true;
+    updateStatus('READY', 'var(--accent-green)');
+}
+
+/**
+ * 高精度サイレンオシレータ（正確なミリ秒時間制御エンジン）
+ */
+class MainSirenEngine {
     constructor(ctx, destination) {
         this.ctx = ctx;
-        this.nodes = [];
-        
-        // メイン出力ゲイン
+        this.destination = destination;
+
         this.outputGain = ctx.createGain();
         this.outputGain.gain.value = 0;
         this.outputGain.connect(destination);
-        this.nodes.push(this.outputGain);
 
-        // バンドパスフィルタ（ホーンスピーカーの音響特性を再現）
-        this.bandpass = ctx.createBiquadFilter();
-        this.bandpass.type = 'bandpass';
-        this.bandpass.frequency.value = 1500;
-        this.bandpass.Q.value = 0.6;
-        this.bandpass.connect(this.outputGain);
-        this.nodes.push(this.bandpass);
+        // 主音源（三角波）＋高調波補強（のこぎり波）
+        this.oscMain = ctx.createOscillator();
+        this.oscMain.type = 'triangle';
 
-        // 鋸形波（Sawtooth）+ 矩形波（Square）合成による金属ホーン音調再現
-        this.oscSaw = ctx.createOscillator();
-        this.oscSaw.type = 'sawtooth';
-        
-        this.oscSquare = ctx.createOscillator();
-        this.oscSquare.type = 'square';
+        this.oscHarmonic = ctx.createOscillator();
+        this.oscHarmonic.type = 'sawtooth';
 
-        const mixGainSquare = ctx.createGain();
-        mixGainSquare.gain.value = 0.35;
+        const harmonicGain = ctx.createGain();
+        harmonicGain.gain.value = 0.18;
 
-        this.oscSaw.connect(this.bandpass);
-        this.oscSquare.connect(mixGainSquare).connect(this.bandpass);
-        
-        this.nodes.push(this.oscSaw, this.oscSquare, mixGainSquare);
+        this.oscMain.connect(this.outputGain);
+        this.oscHarmonic.connect(harmonicGain).connect(this.outputGain);
 
         const now = ctx.currentTime;
-        this.oscSaw.start(now);
-        this.oscSquare.start(now);
+        this.oscMain.start(now);
+        this.oscHarmonic.start(now);
+
+        this.mode = 'OFF'; 
+        this.nextScheduleTime = 0;
+        this.timerId = null;
     }
 
-    setFrequencyAtTime(freq, time) {
-        const clamped = Math.max(FREQ_OFF, freq);
-        this.oscSaw.frequency.setValueAtTime(clamped, time);
-        this.oscSquare.frequency.setValueAtTime(clamped, time);
+    getCurrentFrequency() {
+        return this.oscMain.frequency.value;
     }
 
-    linearRampToFrequencyAtTime(freq, time) {
-        const clamped = Math.max(FREQ_OFF, freq);
-        this.oscSaw.frequency.linearRampToValueAtTime(clamped, time);
-        this.oscSquare.frequency.linearRampToValueAtTime(clamped, time);
+    setFreqInstant(freq, time) {
+        const f = Math.max(FREQ_OFF, freq);
+        this.oscMain.frequency.setValueAtTime(f, time);
+        this.oscHarmonic.frequency.setValueAtTime(f, time);
     }
 
-    setFrequencyTargetAtTime(targetFreq, time, timeConstant) {
-        const clamped = Math.max(FREQ_OFF, targetFreq);
-        this.oscSaw.frequency.setTargetAtTime(clamped, time, timeConstant);
-        this.oscSquare.frequency.setTargetAtTime(clamped, time, timeConstant);
+    linearRampFreq(freq, time) {
+        const f = Math.max(FREQ_OFF, freq);
+        this.oscMain.frequency.linearRampToValueAtTime(f, time);
+        this.oscHarmonic.frequency.linearRampToValueAtTime(f, time);
     }
 
-    cancelSchedules(time) {
-        if (typeof this.outputGain.gain.cancelAndHoldAtTime === 'function') {
-            this.outputGain.gain.cancelAndHoldAtTime(time);
-            this.oscSaw.frequency.cancelAndHoldAtTime(time);
-            this.oscSquare.frequency.cancelAndHoldAtTime(time);
-        } else {
-            this.outputGain.gain.cancelScheduledValues(time);
-            this.oscSaw.frequency.cancelScheduledValues(time);
-            this.oscSquare.frequency.cancelScheduledValues(time);
+    setTargetFreq(freq, time, timeConstant) {
+        const f = Math.max(FREQ_OFF, freq);
+        this.oscMain.frequency.setTargetAtTime(f, time, timeConstant);
+        this.oscHarmonic.frequency.setTargetAtTime(f, time, timeConstant);
+    }
+
+    cancelSchedules() {
+        const now = this.ctx.currentTime;
+        this.oscMain.frequency.cancelScheduledValues(now);
+        this.oscHarmonic.frequency.cancelScheduledValues(now);
+        this.outputGain.gain.cancelScheduledValues(now);
+        if (this.timerId) {
+            clearTimeout(this.timerId);
+            this.timerId = null;
         }
     }
 
-    fadeAndDestroy(durationSec = 0.2) {
+    // --- モード制御ロジック ---
+
+    startAutoCycle(cycleSec) {
+        this.cancelSchedules();
+        this.mode = (cycleSec === 4) ? 'AUTO 4S' : 'AUTO 8S';
+
         const now = this.ctx.currentTime;
-        this.cancelSchedules(now);
-        this.outputGain.gain.setTargetAtTime(0, now, durationSec / 3);
-        setTimeout(() => this.destroy(), durationSec * 1000 + 100);
+        const currentF = this.getCurrentFrequency();
+        const halfCycle = cycleSec / 2.0; // 2.0秒 または 4.0秒
+
+        // 音量即時100%化
+        this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
+        this.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
+
+        // 起点周波数の決定と初回半サイクルの上昇時間の正確な計算
+        let startF = (currentF < FREQ_MIN + 5) ? FREQ_MIN : currentF;
+        if (startF > FREQ_MAX) startF = FREQ_MAX;
+
+        const firstRiseDuration = ((FREQ_MAX - startF) / (FREQ_MAX - FREQ_MIN)) * halfCycle;
+
+        this.setFreqInstant(startF, now);
+        this.linearRampFreq(FREQ_MAX, now + firstRiseDuration);
+
+        this.nextScheduleTime = now + firstRiseDuration;
+
+        const scheduleLoop = () => {
+            if (this.mode !== 'AUTO 4S' && this.mode !== 'AUTO 8S') return;
+
+            const t = this.ctx.currentTime;
+            while (this.nextScheduleTime < t + 2.0) {
+                const startTime = this.nextScheduleTime;
+                // 下降フェーズ (正しく 2.0秒/4.0秒 で 1350 -> 770Hz 直線降下)
+                this.setFreqInstant(FREQ_MAX, startTime);
+                this.linearRampFreq(FREQ_MIN, startTime + halfCycle);
+
+                // 上昇フェーズ (正しく 2.0秒/4.0秒 で 770 -> 1350Hz 直線上昇)
+                this.linearRampFreq(FREQ_MAX, startTime + cycleSec);
+
+                this.nextScheduleTime += cycleSec;
+            }
+            this.timerId = setTimeout(scheduleLoop, 200);
+        };
+
+        scheduleLoop();
     }
 
-    destroy() {
-        this.nodes.forEach(node => {
-            try {
-                if (node.stop) node.stop();
-                node.disconnect();
-            } catch (e) {}
-        });
+    startManualPress() {
+        this.cancelSchedules();
+        this.mode = 'MANUAL (WOO)';
+
+        const now = this.ctx.currentTime;
+        let currentF = this.getCurrentFrequency();
+        if (currentF < FREQ_MIN) currentF = FREQ_MIN;
+
+        // 音量ON
+        this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
+        this.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.03);
+
+        // 手動立ち上がり規格: 約1.3秒で全開(1350Hz)に到達する1次遅れ応答
+        this.setFreqInstant(currentF, now);
+        this.setTargetFreq(FREQ_MAX, now, 0.35); // 0.35 * ~3.7 ≒ 1.3s
+    }
+
+    stopWithInertia() {
+        if (this.mode === 'OFF' || this.mode === 'INERTIA') return;
+
+        this.cancelSchedules();
+        this.mode = 'INERTIA';
+
+        const now = this.ctx.currentTime;
+        const currentF = this.getCurrentFrequency();
+
+        this.setFreqInstant(currentF, now);
+
+        // 手動余韻（慣性降下）規格: 離してから約3.5秒かけて770Hzまで指数関数的に降下
+        this.setTargetFreq(FREQ_MIN, now, 0.85); // timeConstant 0.85 ≒ 約3.5秒で収束
+
+        // 周波数低下に正確に同調して音量も減衰
+        this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
+        this.outputGain.gain.setTargetAtTime(0.0, now, 0.9);
+
+        this.timerId = setTimeout(() => {
+            this.mode = 'OFF';
+            this.setFreqInstant(FREQ_MIN, this.ctx.currentTime);
+        }, 3600);
+    }
+
+    killImmediately() {
+        this.cancelSchedules();
+        this.mode = 'OFF';
+        const now = this.ctx.currentTime;
+        this.outputGain.gain.setValueAtTime(0, now);
+        this.setFreqInstant(FREQ_MIN, now);
     }
 }
 
-class AutoSirenManager {
-    constructor(ctx, destination, cycleLengthSec) {
-        this.ctx = ctx;
-        this.cycleLength = cycleLengthSec; // 4.0s または 8.0s
-        this.halfCycle = cycleLengthSec / 2.0; // 2.0s または 4.0s
-        this.voice = new SirenVoice(ctx, destination);
-        
-        const now = ctx.currentTime;
-        this.voice.setFrequencyAtTime(FREQ_MIN, now);
-        this.voice.outputGain.gain.setValueAtTime(0, now);
-        this.voice.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
-
-        this.isRunning = true;
-        this.nextScheduleTime = now;
-        this.scheduleId = null;
-        
-        this._scheduleLoop();
-    }
-
-    _scheduleLoop() {
-        if (!this.isRunning) return;
-        const now = this.ctx.currentTime;
-        const lookAhead = 2.0;
-        
-        while (this.nextScheduleTime < now + lookAhead) {
-            const t = this.nextScheduleTime;
-            
-            // 規格通り正確な線形直線スイープ（直線増減）
-            this.voice.setFrequencyAtTime(FREQ_MIN, t);
-            this.voice.linearRampToFrequencyAtTime(FREQ_MAX, t + this.halfCycle);
-            this.voice.linearRampToFrequencyAtTime(FREQ_MIN, t + this.cycleLength);
-            
-            this.nextScheduleTime += this.cycleLength;
-        }
-        
-        this.scheduleId = setTimeout(() => this._scheduleLoop(), 200);
-    }
-    
-    stop() {
-        this.isRunning = false;
-        clearTimeout(this.scheduleId);
-        this.voice.fadeAndDestroy(0.2);
-    }
-}
-
-class IntersectionAlarmVoice {
+/**
+ * 交差点警報音エンジン (1200Hz + 1550Hz / 11.5Hz変調)
+ */
+class IntersectionAlarmEngine {
     constructor(ctx, destination) {
         this.ctx = ctx;
-        this.nodes = [];
-        
-        this.master = ctx.createGain();
-        this.master.gain.value = 0;
-        this.master.connect(destination);
-        this.nodes.push(this.master);
-        
+        this.destination = destination;
+
+        this.mainGain = ctx.createGain();
+        this.mainGain.gain.value = 0;
+        this.mainGain.connect(destination);
+
+        this.lfo = ctx.createOscillator();
+        this.lfo.type = 'square';
+        this.lfo.frequency.value = 11.5;
+
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = 0.5;
+
+        const dcOffset = ctx.createConstantSource();
+        dcOffset.offset.value = 0.5;
+
         const modGain = ctx.createGain();
-        modGain.gain.value = 0; 
-        modGain.connect(this.master);
-        this.nodes.push(modGain);
-        
-        // 規格仕様: 11.5Hz 断続モジュレーション
-        const lfo = ctx.createOscillator();
-        lfo.type = 'square';
-        lfo.frequency.value = 11.5; 
-        
-        const dc = ctx.createConstantSource();
-        dc.offset.value = 1;
-        
-        lfo.connect(modGain.gain);
-        dc.connect(modGain.gain);
-        this.nodes.push(lfo, dc);
-        
-        // 規格仕様: 1200Hz ＆ 1550Hz 複合音
-        const freqs = [1200, 1550]; 
-        freqs.forEach(f => {
+        modGain.gain.value = 0;
+
+        this.lfo.connect(lfoGain);
+        lfoGain.connect(modGain.gain);
+        dcOffset.connect(modGain.gain);
+        modGain.connect(this.mainGain);
+
+        const freqs = [1200, 1550];
+        this.oscs = freqs.map(f => {
             const osc = ctx.createOscillator();
             osc.type = 'square';
             osc.frequency.value = f;
-            
-            const bp = ctx.createBiquadFilter();
-            bp.type = 'bandpass';
-            bp.frequency.value = f;
-            bp.Q.value = 4.0;
-            
-            osc.connect(bp).connect(modGain);
-            this.nodes.push(osc, bp);
-            osc.start();
+
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = f;
+            filter.Q.value = 3.0;
+
+            osc.connect(filter).connect(modGain);
+            return osc;
         });
-        lfo.start();
-        dc.start();
+
+        const now = ctx.currentTime;
+        this.lfo.start(now);
+        dcOffset.start(now);
+        this.oscs.forEach(o => o.start(now));
+
+        this.isActive = false;
     }
-    
+
     start() {
         const now = this.ctx.currentTime;
-        this.master.gain.setValueAtTime(0, now);
-        this.master.gain.linearRampToValueAtTime(0.5, now + 0.03);
+        this.mainGain.gain.cancelScheduledValues(now);
+        this.mainGain.gain.setValueAtTime(this.mainGain.gain.value, now);
+        this.mainGain.gain.linearRampToValueAtTime(0.7, now + 0.03);
+        this.isActive = true;
     }
-    
+
     stop() {
         const now = this.ctx.currentTime;
-        if (typeof this.master.gain.cancelAndHoldAtTime === 'function') {
-            this.master.gain.cancelAndHoldAtTime(now);
-        } else {
-            this.master.gain.cancelScheduledValues(now);
-        }
-        this.master.gain.setTargetAtTime(0, now, 0.05);
-        
-        setTimeout(() => {
-            this.nodes.forEach(n => {
-                try {
-                    if (n.stop) n.stop();
-                    n.disconnect();
-                } catch(e) {}
-            });
-        }, 300);
+        this.mainGain.gain.cancelScheduledValues(now);
+        this.mainGain.gain.setValueAtTime(this.mainGain.gain.value, now);
+        this.mainGain.gain.linearRampToValueAtTime(0, now + 0.05);
+        this.isActive = false;
     }
 }
 
-// UI ＆ コントロール
+// UIイベント制御
 const btnAuto4 = document.getElementById('btn-auto-4');
 const btnAuto8 = document.getElementById('btn-auto-8');
 const btnManual = document.getElementById('btn-manual');
 const btnAlarm = document.getElementById('btn-alarm');
 const btnStop = document.getElementById('btn-stop');
+
+const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 
-function initAudio() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    masterCompressor = audioCtx.createDynamicsCompressor();
-    masterCompressor.threshold.value = -6;
-    masterCompressor.knee.value = 6;
-    masterCompressor.ratio.value = 12;
-    masterCompressor.attack.value = 0.005;
-    masterCompressor.release.value = 0.08;
-    
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
-    
-    masterCompressor.connect(analyser);
-    analyser.connect(audioCtx.destination);
-    
-    drawVisualizer();
+const telemetryFreq = document.getElementById('telemetry-freq');
+const telemetryMode = document.getElementById('telemetry-mode');
+const telemetryVol = document.getElementById('telemetry-vol');
+
+function updateStatus(text, color) {
+    statusText.textContent = text;
+    statusDot.style.backgroundColor = color;
+    statusDot.style.boxShadow = `0 0 8px ${color}`;
 }
 
-function toggleAuto(is4Sec) {
-    initAudio();
-    const cycle = is4Sec ? 4 : 8;
-    const targetBtn = is4Sec ? btnAuto4 : btnAuto8;
-    const otherBtn  = is4Sec ? btnAuto8 : btnAuto4;
-    
-    if (autoManager) {
-        const wasSame = (autoManager.cycleLength === cycle);
-        autoManager.stop();
-        autoManager = null;
-        targetBtn.classList.remove('active');
-        otherBtn.classList.remove('active');
-        if (wasSame) return; 
-    }
-    
-    autoManager = new AutoSirenManager(audioCtx, masterCompressor, cycle);
-    targetBtn.classList.add('active');
-}
-
-function startManual() {
-    initAudio();
-    if (manualKeyActive) return;
-    manualKeyActive = true;
-    btnManual.classList.add('active');
-
-    while (activeManualVoices.length >= 2) {
-        const oldestVoice = activeManualVoices.shift();
-        oldestVoice.fadeAndDestroy(0.15);
-    }
-
-    const voice = new SirenVoice(audioCtx, masterCompressor);
-    const now = audioCtx.currentTime;
-    
-    // 手動仕様: 0Hzから立ち上がり、約1.3秒で1020Hzへ全開到達
-    voice.setFrequencyAtTime(FREQ_OFF, now);
-    voice.outputGain.gain.setValueAtTime(0, now);
-    voice.outputGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
-    
-    voice.setFrequencyTargetAtTime(FREQ_MAX, now, 0.45);
-
-    activeManualVoices.push(voice);
-    currentManualVoice = voice;
-}
-
-function releaseManual() {
-    manualKeyActive = false;
+function clearActiveUI() {
+    btnAuto4.classList.remove('active');
+    btnAuto8.classList.remove('active');
     btnManual.classList.remove('active');
-    
-    if (currentManualVoice) {
-        const voice = currentManualVoice;
-        const now = audioCtx.currentTime;
-        
-        voice.cancelSchedules(now);
-        
-        // 手動余韻仕様: 離してから約3.5秒かけて0Hzまで減衰
-        voice.setFrequencyTargetAtTime(FREQ_OFF, now, 0.8);
-        voice.outputGain.gain.setTargetAtTime(0, now, 0.85); 
-        
-        setTimeout(() => {
-            voice.destroy();
-            const idx = activeManualVoices.indexOf(voice);
-            if (idx > -1) activeManualVoices.splice(idx, 1);
-        }, 3800);
-        
-        currentManualVoice = null;
+}
+
+function ensureAudioReady() {
+    initAudioEngine();
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    if (!mainSirenNode) {
+        mainSirenNode = new MainSirenEngine(audioCtx, speakerFilterBank.input);
+    }
+    if (!intersectionAlarmNode) {
+        intersectionAlarmNode = new IntersectionAlarmEngine(audioCtx, speakerFilterBank.input);
     }
 }
 
-function toggleAlarm() {
-    initAudio();
-    if (alarmVoice) {
-        alarmVoice.stop();
-        alarmVoice = null;
-        btnAlarm.classList.remove('active');
+function handleAutoToggle(cycleSec) {
+    ensureAudioReady();
+    const isTarget4 = (cycleSec === 4);
+    const targetBtn = isTarget4 ? btnAuto4 : btnAuto8;
+    const isAlreadyActive = targetBtn.classList.contains('active');
+
+    if (isAlreadyActive) {
+        mainSirenNode.stopWithInertia();
+        clearActiveUI();
     } else {
-        alarmVoice = new IntersectionAlarmVoice(audioCtx, masterCompressor);
-        alarmVoice.start();
-        btnAlarm.classList.add('active');
+        clearActiveUI();
+        targetBtn.classList.add('active');
+        mainSirenNode.startAutoCycle(cycleSec);
     }
 }
 
-function stopAll() {
-    if (autoManager) {
-        autoManager.stop();
-        autoManager = null;
-        btnAuto4.classList.remove('active');
-        btnAuto8.classList.remove('active');
-    }
-    if (alarmVoice) {
-        alarmVoice.stop();
-        alarmVoice = null;
-        btnAlarm.classList.remove('active');
-    }
-    
-    activeManualVoices.forEach(voice => voice.fadeAndDestroy(0.1));
-    activeManualVoices = [];
-    currentManualVoice = null;
-    manualKeyActive = false;
+btnAuto4.addEventListener('click', () => handleAutoToggle(4));
+btnAuto8.addEventListener('click', () => handleAutoToggle(8));
+
+function handleManualStart() {
+    ensureAudioReady();
+    if (btnManual.classList.contains('active')) return;
+    clearActiveUI();
+    btnManual.classList.add('active');
+    mainSirenNode.startManualPress();
+}
+
+function handleManualRelease() {
+    if (!btnManual.classList.contains('active')) return;
     btnManual.classList.remove('active');
+    if (mainSirenNode) {
+        mainSirenNode.stopWithInertia();
+    }
 }
 
-btnAuto4.addEventListener('click', () => toggleAuto(true));
-btnAuto8.addEventListener('click', () => toggleAuto(false));
-btnAlarm.addEventListener('click', toggleAlarm);
-btnStop.addEventListener('click', stopAll);
+btnManual.addEventListener('mousedown', handleManualStart);
+btnManual.addEventListener('mouseup', handleManualRelease);
+btnManual.addEventListener('mouseleave', handleManualRelease);
 
-btnManual.addEventListener('mousedown', startManual);
-btnManual.addEventListener('mouseup', releaseManual);
-btnManual.addEventListener('mouseleave', releaseManual);
-btnManual.addEventListener('touchstart', (e) => { e.preventDefault(); startManual(); }, { passive: false });
-btnManual.addEventListener('touchend', (e) => { e.preventDefault(); releaseManual(); }, { passive: false });
+btnManual.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleManualStart();
+}, { passive: false });
+
+btnManual.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    handleManualRelease();
+}, { passive: false });
 
 window.addEventListener('keydown', (e) => {
-    if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) {
+    if (e.code === 'Space' && !e.repeat) {
         e.preventDefault();
-        startManual();
+        handleManualStart();
     }
 });
+
 window.addEventListener('keyup', (e) => {
-    if (e.code === 'Space' || e.code === 'Enter') {
-        releaseManual();
+    if (e.code === 'Space') {
+        e.preventDefault();
+        handleManualRelease();
     }
 });
 
-// Canvas Visualizer
-const canvas = document.getElementById('visualizer');
-const ctxCanvas = canvas.getContext('2d');
+btnAlarm.addEventListener('click', () => {
+    ensureAudioReady();
+    if (intersectionAlarmNode.isActive) {
+        intersectionAlarmNode.stop();
+        btnAlarm.classList.remove('active');
+    } else {
+        intersectionAlarmNode.start();
+        btnAlarm.classList.add('active');
+    }
+});
 
-function drawVisualizer() {
-    requestAnimationFrame(drawVisualizer);
-    
+btnStop.addEventListener('click', () => {
+    if (!isAudioInitialized) return;
+    clearActiveUI();
+    btnAlarm.classList.remove('active');
+    if (mainSirenNode) mainSirenNode.killImmediately();
+    if (intersectionAlarmNode) intersectionAlarmNode.stop();
+});
+
+// Canvas オシロスコープ描画
+const canvas = document.getElementById('canvas');
+const canvasCtx = canvas.getContext('2d');
+
+function renderVisualizer() {
+    requestAnimationFrame(renderVisualizer);
+
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
-        ctxCanvas.scale(dpr, dpr);
+        canvasCtx.scale(dpr, dpr);
     }
-    
+
     const w = rect.width;
     const h = rect.height;
 
-    ctxCanvas.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    ctxCanvas.fillRect(0, 0, w, h);
+    canvasCtx.fillStyle = '#050608';
+    canvasCtx.fillRect(0, 0, w, h);
+
+    canvasCtx.strokeStyle = '#141720';
+    canvasCtx.lineWidth = 1;
+    for (let x = 0; x < w; x += 30) {
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(x, 0);
+        canvasCtx.lineTo(x, h);
+        canvasCtx.stroke();
+    }
+    for (let y = 0; y < h; y += 20) {
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(0, y);
+        canvasCtx.lineTo(w, y);
+        canvasCtx.stroke();
+    }
 
     if (!analyser) return;
 
     const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyser.getByteTimeDomainData(dataArray);
+    const timeData = new Uint8Array(bufferLength);
+    analyser.getByteTimeDomainData(timeData);
 
-    ctxCanvas.lineWidth = 2;
-    ctxCanvas.strokeStyle = '#00ff66';
-    ctxCanvas.beginPath();
+    canvasCtx.lineWidth = 2;
+    canvasCtx.strokeStyle = '#30d158';
+    canvasCtx.shadowBlur = 8;
+    canvasCtx.shadowColor = 'rgba(48, 209, 88, 0.5)';
+    canvasCtx.beginPath();
 
-    const sliceWidth = w * 1.0 / bufferLength;
+    const sliceWidth = w / bufferLength;
     let x = 0;
 
     for (let i = 0; i < bufferLength; i++) {
-        const v = dataArray[i] / 128.0;
-        const y = v * (h / 2);
+        const v = timeData[i] / 128.0;
+        const y = (v * h) / 2;
+
         if (i === 0) {
-            ctxCanvas.moveTo(x, y);
+            canvasCtx.moveTo(x, y);
         } else {
-            ctxCanvas.lineTo(x, y);
+            canvasCtx.lineTo(x, y);
         }
         x += sliceWidth;
     }
 
-    ctxCanvas.lineTo(w, h / 2);
-    ctxCanvas.stroke();
-    
-    const autoStatus = autoManager ? `${autoManager.cycleLength}S` : 'OFF';
-    const manCnt = activeManualVoices.length;
-    const almStatus = alarmVoice ? 'ON' : 'OFF';
-    statusText.textContent = `SYS_STATUS: [AUTO: ${autoStatus}] [MANUAL_VOICES: ${manCnt}] [INTERSECTION: ${almStatus}]`;
+    canvasCtx.lineTo(w, h / 2);
+    canvasCtx.stroke();
+    canvasCtx.shadowBlur = 0;
+
+    if (mainSirenNode) {
+        const freq = (mainSirenNode.mode === 'OFF') ? 0 : mainSirenNode.getCurrentFrequency();
+        telemetryFreq.textContent = `${freq.toFixed(1)} Hz`;
+        telemetryMode.textContent = mainSirenNode.mode;
+
+        const vol = Math.round(mainSirenNode.outputGain.gain.value * 100);
+        telemetryVol.textContent = `${vol} %`;
+
+        if (mainSirenNode.mode !== 'OFF' || (intersectionAlarmNode && intersectionAlarmNode.isActive)) {
+            updateStatus('TRANSMITTING', 'var(--accent-red)');
+        } else {
+            updateStatus('READY', 'var(--accent-green)');
+        }
+    }
 }
 
-ctxCanvas.fillStyle = '#000';
-ctxCanvas.fillRect(0, 0, canvas.width, canvas.height);
+renderVisualizer();
 </script>
-
 </body>
 </html>
